@@ -1,0 +1,98 @@
+<?xml version = "1.0"?>
+<overlay>
+	<nodes>
+		<entry n='O1'>
+			<address>10.0.0.10</address>
+		</entry>
+		<entry n='O2'>
+			<address>10.0.0.1</address>
+			<address>10.0.1.1</address>
+			<address>10.0.4.1</address>
+		</entry>
+		<entry n='O3'>
+			<address>10.0.1.2</address>
+			<address>10.0.2.1</address>
+			<address>10.0.11.2</address>
+		</entry>
+		<entry n='O4'>
+			<address>10.0.12.21</address>
+		</entry>
+		<entry n='O5'>
+			<address>10.0.13.1</address>
+			<address>10.0.14.1</address>
+			<address>10.0.16.2</address>
+			<address>10.0.19.1</address>
+		</entry>
+		<entry n='O6'>
+			<address>10.0.15.2</address>
+			<address>10.0.16.1</address>
+			<address>10.0.17.1</address>
+			<address>10.0.18.1</address>
+		</entry>
+		<entry n='O7'>
+			<address>10.0.5.2</address>
+			<address>10.0.7.1</address>
+			<address>10.0.8.2</address>
+			<address>10.0.20.1</address>
+		</entry>
+		<entry n='O8'>
+			<address>10.0.6.21</address>
+		</entry>
+		<entry n='O9'>
+			<address>10.0.18.20</address>
+		</entry>
+		<entry n='O10'>
+			<address>10.0.19.21</address>
+		</entry>
+		<entry n='O11'>
+			<address>10.0.19.20</address>
+		</entry>
+	</nodes>
+	<bootstrapper name="O1"/>
+	<node n='O1'>
+		<adj>O2</adj>
+	</node>
+	<node n='O2'>
+		<adj>O1</adj>
+		<adj>O3</adj>
+		<adj>O7</adj>
+	</node>
+	<node n='O3'>
+		<adj>O2</adj>
+		<adj>O4</adj>
+		<adj>O5</adj>
+	</node>
+	<node n='O4'>
+		<adj>O3</adj>
+	</node>
+	<node n='O5'>
+		<adj>O3</adj>
+		<adj>O6</adj>
+		<adj>O7</adj>
+		<adj>O10</adj>
+		<adj>O11</adj>
+	</node>
+	<node n='O6'>
+		<adj>O5</adj>
+		<adj>O7</adj>
+		<adj>O9</adj>
+	</node>
+	<node n='O7'>
+		<adj>O2</adj>
+		<adj>O5</adj>
+		<adj>O6</adj>
+		<adj>O8</adj>
+	</node>
+	<node n='O8'>
+		<adj>O7</adj>
+	</node>
+	<node n='O9'>
+		<adj>O6</adj>
+	</node>
+	<node n='O10'>
+		<adj>O5</adj>
+	</node>
+	<node n='O11'>
+		<adj>O5</adj>
+	</node>
+</overlay>
