@@ -10,15 +10,12 @@ import java.util.regex.Pattern;
 
 public class nodeManager{
     
-    //Hashmap name, node
-    public HashMap<String, node> nodes = new HashMap<String, node>();
+    //Hashmap name, Node
+    public static HashMap<String, Node> nodes = new HashMap<String, Node>();
+    public static String rpName = "";
 
     public nodeManager(){
     
-    }
-
-    public void initializeNodes(String filePath){
-        
     }
 
     public void parseNodes(String filePath){
@@ -40,68 +37,65 @@ public class nodeManager{
             Pattern pattern = Pattern.compile("nodes ");
             
             
-            node nodeTemp=null;
+            Node nodeTemp=null;
             String nameTemp="";
 
             for (int lineNum=0; lineNum<contentSplited.length; lineNum++){
                 String line = contentSplited[lineNum];
+                //System.out.println(line);
                 if(line.contains("node")){
-                    nodeTemp = new node();
+                    nodeTemp = new Node();
                     //we classify the nodes based on their name
                     //i.e if the name is rp then it will be the rendevouz point
                     //or if the name is client then it will be the client
                     String[] lineSplitted = line.split(" ");
                     nameTemp = lineSplitted[1];
-                    if(nameTemp.contains("rp")){
-                        nodeTemp.setNodeType(node.type.rp);
+                    
+                }
+
+                else if(line.contains("hostname")){
+                    String type = line.split(" ")[1];
+                    //System.out.println(type);
+                     if(type.contains("rp")){
+                        nodeTemp.setNodeType(Node.type.rp);
+                        rpName=nameTemp;
                     }
-                    else if(nameTemp.contains("client")){
-                        nodeTemp.setNodeType(node.type.client);
+                    else if(type.contains("client")){
+                        nodeTemp.setNodeType(Node.type.client);
                     }
                     else{
-                        nodeTemp.setNodeType(node.type.node);
+                        nodeTemp.setNodeType(Node.type.Node);
                     }
-                    System.out.println(nameTemp);
-                    nodeTemp.setNodeState(node.state.on);
-                    
+                    nodeTemp.setNodeState(Node.state.on);
                 }
 
                 else if(line.contains("interface eth0")){
                     String ipLine = contentSplited[lineNum+1];
+                    //System.out.println(ipLine);
                     String[] lineTemp = ipLine.split(" ");
-                    //Para remover a barras do ip
-                    nodeTemp.setNodeIP(lineTemp[2].split("/")[0]);
+                    //Para remover as interfaces
+                    nodeTemp.setNodeIP(lineTemp[3].split("/")[0]);
                     nodes.put(nameTemp, nodeTemp);
                 }
 
-                // else if(line.contains("link")){
-                
-                //     // Create a matcher using the pattern
-                //     Matcher matcher = pattern.matcher(contentSplited[lineNum+1]);
+                else if(line.contains("link")){
+                   String newLine = contentSplited[lineNum+1];
+                    
+                    Pattern pattern2 = Pattern.compile("\\{(.*?)\\}");
 
-                //     // Find the first match
-                //     boolean foundMatch = matcher.find();
-
-                //     // If a match is found, get the matched group
-                //     if (foundMatch) {
-                //         System.out.println(foundMatch);
-                //         String nodes = matcher.group(1);
-
-                //         // Split the nodes string into an array
-                //         String[] nodesArray = nodes.split(" ");
-
-                //         // Get the n2 and n3 nodes
-                //         String n0 = nodesArray[0];
-                //         String n1 = nodesArray[1];
-
-                //         this.nodes.get(n0).addNeighbour(this.nodes.get(n1));
+                    Matcher matcher = pattern2.matcher(newLine);
+                    if(matcher.find()){
+                        String nodes = matcher.group(1);
+                        String n1 = nodes.split(" ")[0];
+                        String n2 = nodes.split(" ")[1];
+                        //Partindo de que os nodos já estão todos criados por esta altura, então
+                        //basta adicionar os vizinhos
+                        this.nodes.get(n1).addNeighbour(this.nodes.get(n2));
+                        this.nodes.get(n2).addNeighbour(this.nodes.get(n1));
                         
-                //         this.nodes.get(n1).addNeighbour(this.nodes.get(n0));
-                //     }
-                // }
+                    }
+                }
             }
-    
-
         }   
         catch(Exception e){
             System.out.println("Error loading overlay file");

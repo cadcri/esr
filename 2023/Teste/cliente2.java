@@ -112,7 +112,7 @@ public class cliente2 {
                         System.out.println("Something went wrong accepting connections(Server Socket)");
                     }
                 }
-            }).run();
+            }).start();
         }
         catch(Exception e){
             e.printStackTrace();
