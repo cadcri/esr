@@ -5,6 +5,7 @@ import java.net.*;
 
 
 
+
 public class main {
 
     private static String ip="";
@@ -36,11 +37,15 @@ public class main {
                 if (nodeType == (Node.type.rp)){
                     System.out.println("I am the rendevouz point");
                     //Should clone the hashmap
+                    //Removing the rp since he shouldnt send messages to himself
+                    nodeManager.nodes.remove(nodoName);
                     new RP(nodeManager.nodes);
+                    break;
                 }
                 else if(nodeType == (Node.type.client)){
                     System.out.println("I am a client");
                     new Client(nodeManager.nodes.get(nodeManager.rpName).getNodeIP());
+                    break;
                 }
                 else{
                     System.out.println("I am a node");

@@ -15,6 +15,7 @@ public class Node {
         off
     }
 
+    private String name;
     private type nodeType;
     private String nodeIP;
     private state nodeState;
@@ -23,6 +24,7 @@ public class Node {
     public Node(){
         this.nodeType=null;
         this.nodeIP="localhost";
+        this.name="";
         this.nodeState=nodeState.off;
     }
     
@@ -36,8 +38,24 @@ public class Node {
         return this.nodeIP;
     }
 
+    public String getNodeName(){
+        return this.name;
+    }
+
     public type getNodeType(){
         return this.nodeType;
+    }
+
+    public state getState(){
+        return this.nodeState;
+    }
+
+    public ArrayList<Node> getNeighbors(){
+        return this.neighbors;
+    }
+
+    public void setNodeName(String name){
+        this.name=name;
     }
 
     public void setNodeType(type nodeType){

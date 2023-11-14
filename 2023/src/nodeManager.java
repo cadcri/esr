@@ -66,6 +66,7 @@ public class nodeManager{
                     else{
                         nodeTemp.setNodeType(Node.type.Node);
                     }
+                    nodeTemp.setNodeName(nameTemp);
                     nodeTemp.setNodeState(Node.state.on);
                 }
 
