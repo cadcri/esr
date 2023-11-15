@@ -1,28 +1,10 @@
-
-# Set the output directory
-OUTPUT_DIR := output
-
-# Find all Java source files in the current directory and its subdirectories
-JAVA_SRCS := $(shell find . -name '*.java')
-
-# Convert Java source file paths to class file paths
-CLASS_FILES := $(patsubst %.java,$(OUTPUT_DIR)/%.class,$(JAVA_SRCS))
-
-# Rule to build a class file from a Java source file
-$(OUTPUT_DIR)/%.class: %.java | $(OUTPUT_DIR)
-    javac -d $(OUTPUT_DIR) $<
-
-# Rule to create the output directory if it doesn't exist
-$(OUTPUT_DIR):
-    mkdir -p $(OUTPUT_DIR)
-
 # Rule to build all class files
-all: $(CLASS_FILES)
+all:
+	javac *.java -d ./output/
 
 # Clean rule to remove all class files and the output directory
 clean:
-    rm -rf $(OUTPUT_DIR)
+	rm -f ./output/*.class
 
-run: 
-	java -cp $(OUTPUT_DIR) main
-
+run:
+	java -cp ./output/ main

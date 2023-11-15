@@ -1,0 +1,19 @@
+
+#Streaming básico
+1º passo, o rp está pre estabelecido i.e 192.168.56.1
+2º passo, cliente pede ao rp para se conectar
+3º passo, rp diz ao cliente o nodo mais próximo dele (isto poderá servir para guardar cache de ficheiros de stream etc)
+4º passo, o cliente pede ao rp um conteúdo específico que ** ele saiba ** que alguém está a streamar
+5º passo, o rp sabe a estrutura de rede e envia por hops os conteúdos pelos nós intermédios
+  Isto é um grafo por isso utilizar dfs para saber os caminhos mais curtos até aos clientes seria interessante
+  Visto que há uma distinção entre cliente e nó, poderiamos usar esta diferença para otimizar o routing
+  Métricas de routing poderia ser latência/nº hops
+
+# Estratégia:
+Definir várias portas, i,e 3000 trata dos handling de requests de join, 4000 trata do probing ie keep alive, swap de nodos etc
+
+
+
+No futuro podemos criar uma estratégia de resiliência que consiste em ter mais nodos 
+intermédio "adormecidos" para que em caso de falha sejam retomados e alterar a rota
+O ficheiro imn dá-nos a bandwith no futuro podemos ir buscar isso para mética

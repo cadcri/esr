@@ -12,8 +12,6 @@
 # Estratégia:
 Definir várias portas, i,e 3000 trata dos handling de requests de join, 4000 trata do probing ie keep alive, swap de nodos etc
 
-
-
 No futuro podemos criar uma estratégia de resiliência que consiste em ter mais nodos 
 intermédio "adormecidos" para que em caso de falha sejam retomados e alterar a rota
 O ficheiro imn dá-nos a bandwith no futuro podemos ir buscar isso para mética

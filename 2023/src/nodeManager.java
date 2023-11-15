@@ -1,9 +1,7 @@
 //package src;
 
-import java.io.FileInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,7 +18,7 @@ public class nodeManager{
 
     public void parseNodes(String filePath){
         try{
-             if (!filePath.contains(".imn"))
+             if (!filePath.endsWith(".imn"))
                 filePath=filePath+".imn";
             String content="";
             Path path = Path.of(filePath);
@@ -34,22 +32,31 @@ public class nodeManager{
             //Path path = FileSystems.getDefault().getPath("logs", nameOfFile);
             String[] contentSplited = content.split("\n");
             
-            Pattern pattern = Pattern.compile("nodes ");
-            
             
             Node nodeTemp=null;
             String nameTemp="";
+            //Key = node name values = neighbourname, ip
+            HashMap <String, HashMap<String,String>> links = new HashMap<>();
+            //Interface name, interface IP
+            HashMap <String, String> interfaces=new HashMap<>();
+
+            HashMap <String, Node> nodesTemp = new HashMap<>();
+            Boolean finished = false;
 
             for (int lineNum=0; lineNum<contentSplited.length; lineNum++){
                 String line = contentSplited[lineNum];
                 //System.out.println(line);
-                if(line.contains("node")){
-                    nodeTemp = new Node();
+                if(line.startsWith("node")){
                     //we classify the nodes based on their name
                     //i.e if the name is rp then it will be the rendevouz point
                     //or if the name is client then it will be the client
                     String[] lineSplitted = line.split(" ");
                     nameTemp = lineSplitted[1];
+
+                    nodeTemp = new Node();
+                    interfaces = new HashMap<>();
+                    links.put(nameTemp, new HashMap<String,String>());
+                    
                     
                 }
 
@@ -67,35 +74,60 @@ public class nodeManager{
                         nodeTemp.setNodeType(Node.type.Node);
                     }
                     nodeTemp.setNodeName(nameTemp);
-                    nodeTemp.setNodeState(Node.state.on);
                 }
 
-                else if(line.contains("interface eth0")){
+                Pattern interfacePattern = Pattern.compile("interface (eth[0-9]+)");
+                Matcher interfaceMatcher = interfacePattern.matcher(line);
+
+                if (interfaceMatcher.find()){
+                    String interfaceTemp = interfaceMatcher.group(1);
                     String ipLine = contentSplited[lineNum+1];
-                    //System.out.println(ipLine);
-                    String[] lineTemp = ipLine.split(" ");
-                    //Para remover as interfaces
-                    nodeTemp.setNodeIP(lineTemp[3].split("/")[0]);
-                    nodes.put(nameTemp, nodeTemp);
-                }
-
-                else if(line.contains("link")){
-                   String newLine = contentSplited[lineNum+1];
-                    
-                    Pattern pattern2 = Pattern.compile("\\{(.*?)\\}");
-
-                    Matcher matcher = pattern2.matcher(newLine);
-                    if(matcher.find()){
-                        String nodes = matcher.group(1);
-                        String n1 = nodes.split(" ")[0];
-                        String n2 = nodes.split(" ")[1];
-                        //Partindo de que os nodos já estão todos criados por esta altura, então
-                        //basta adicionar os vizinhos
-                        this.nodes.get(n1).addNeighbour(this.nodes.get(n2));
-                        this.nodes.get(n2).addNeighbour(this.nodes.get(n1));
-                        
+                    if (interfaceTemp.equals("eth0")){
+                        nodeTemp.setNodeIP(ipLine.split(" ")[3].split("/")[0]);
                     }
+                    
+                    //Adiciona a interface e o ip da mesma ao hashmap
+                    interfaces.put(interfaceTemp, ipLine.split(" ")[3].split("/")[0]);
                 }
+
+                Pattern interfacePeer = Pattern.compile("interface-peer \\{(.*)\\}");
+                Matcher interfacePeerMatcher = interfacePeer.matcher(line);
+                while(interfacePeerMatcher.find()){
+                    
+                    String[] lineTemp = interfacePeerMatcher.group(1).split(" ");
+                    
+                    //interface node
+                    String interfaceNameTemp = lineTemp[0];
+                    String neighbournNameTemp = lineTemp[1];
+                
+                    
+                    //We now have the interface IP
+                    String interfaceIpToNode = interfaces.get(interfaceNameTemp);
+                
+                    //Lets add it to this nodes neighbours
+                    HashMap<String,String> temp = links.get(nameTemp);
+                    temp.put(neighbournNameTemp, interfaceIpToNode);
+                    finished=true;
+                }
+
+                if (finished){
+                    nodesTemp.put(nodeTemp.getNodeName(), nodeTemp);
+                    finished=false;
+                    continue;
+                }
+                
+
+            }
+
+            for(String nodeName : links.keySet()){
+                Node node = nodesTemp.get(nodeName);          
+                for(String neighbourName : links.get(nodeName).keySet()){
+                    Node neighbour = nodesTemp.get(neighbourName).clone();
+                    String neighbourIP = links.get(nodeName).get(neighbourName);
+                    neighbour.setNodeIP(neighbourIP);
+                    neighbour.addNeighbour(node);
+                }
+                nodes.put(nodeName, node);
             }
         }   
         catch(Exception e){

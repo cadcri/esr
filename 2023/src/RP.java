@@ -1,4 +1,3 @@
-
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Scanner;
@@ -6,19 +5,25 @@ import java.net.Socket;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.util.concurrent.*;
-
-
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 
 public class RP{
 
     private int streamPort = 30000;
     private int listeningPort = 30001;
+    private int UDPPORT = 4445;
     //private int probePort = 30002;
 
     private HashMap<String, Node> nodes = new HashMap<String, Node>();
     private HashMap<String, Node> graph = new HashMap<String, Node>();
     private HashMap<String, Socket> nodeSockets = new HashMap<String, Socket>();
+    private UDPManager udpManager;
+    private Node node;
+
+
 
     private Socket listeningSocket;
 
@@ -28,7 +33,7 @@ public class RP{
         error
     }
 
-    public enum Message{
+    private enum Type{
         PROBE,
         ACK,
         JOIN,
@@ -38,21 +43,25 @@ public class RP{
         TEXT
     }
 
-    public RP(HashMap<String, Node> nodes){
-    
-        new Thread(() -> {
-            try{
-                ServerSocket socketTemp = new ServerSocket(listeningPort);
-                this.listeningSocket = socketTemp.accept();
-            }
-            catch(Exception e){
-                e.printStackTrace();
-            }
-            }).start();
+    public RP(Node node){
+        this.node=node;
+        udpManager =new UDPManager(this.node);
+        // new Thread(() -> {
+        //     try{
+        //         ServerSocket socketTemp = new ServerSocket(listeningPort);
+        //         this.listeningSocket = socketTemp.accept();
+        //     }
+        //     catch(Exception e){
+        //         e.printStackTrace();
+        //     }
+        // }).start();
 
+        //udpHandler();
         
-        this.nodes=nodes;
-        System.out.println(this.nodes.size());
+
+        //System.out.println(node.toString());
+        this.nodes=node.getNeighbors();
+        //System.out.println(this.nodes.size());
 
         String option = "";
         Scanner scanner = new Scanner(System.in);  
@@ -72,7 +81,7 @@ public class RP{
                     break;
 
                 case("2"):
-                    probeAllConnections();
+                    probeAllNodes();
                     break;
                 
                 case("3"):
@@ -87,7 +96,24 @@ public class RP{
     private void listAllNodes(){
         System.out.println("Listing all nodes");
         for(Node nodo: this.nodes.values()){
+            System.out.println(nodo.getNodeName());
             System.out.println(nodo.toString());
+        }
+    }
+
+    private void probeAllNodes(){
+        for(Node nodo: this.node.getNeighbors().values()){
+            probeNode(nodo);
+        }
+    }
+
+    private void probeNode(Node node){
+        try{
+            System.out.println("Probing node: "+node.getNodeIP());
+            this.udpManager.sendPacket(Type.PROBE.toString(), node.getNodeIP(), UDPPORT);
+        }
+        catch(Exception e){
+            System.out.println("Error probing node: "+node.getNodeIP());
         }
     }
 
@@ -95,9 +121,9 @@ public class RP{
         Scanner sc = new Scanner(System.in);
         System.out.println("What do you want to send?");
         String text = sc.nextLine();
-        for (Node nodo: this.nodes.values()){
-           sendMessage(Message.TEXT, nodo.getNodeIP());
-        }
+        // for (Node nodo: this.nodes.values()){
+        //    sendMessage(Type.TEXT, nodo.getNodeIP());
+        // }
     }
 
     private void sendMessage(Message message, String ip){
@@ -117,76 +143,14 @@ public class RP{
                 catch(Exception e){
                     e.printStackTrace();
                     System.out.println("Error sending message: "+e);
-                    //status=Status.error;
                 }
             }).start();
-            //return status;
         }
         catch(Exception e){
             e.printStackTrace();
             System.out.println("Error sending message: "+e);
             //return Status.error;
         }
-    }
-
-    private void generateGraph(){
-        //generate graph only for nodes that are "probable"
-        //generate graph
-        //for each node
-        //  for each neighbour
-        //      if neighbour is not in graph
-        //          add neighbour to graph
-        //      add edge between node and neighbour
-        for(Node nodo: this.nodes.values()){
-
-            for(Node vizinho : nodo.getNeighbors()){
-                if(!this.graph.containsKey(nodo.getNodeIP())){
-                    this.graph.put(nodo.getNodeIP(), nodo);
-                }
-            }
-        }
-
-    }
-
-
-    private void probeAllConnections(){
-        try{
-            for (Node nodo: this.nodes.values()){
-               if (probeNode(nodo.getNodeIP()) == Status.error){
-                   nodo.setNodeState(Node.state.off);
-                   System.out.println("Node "+nodo.getNodeName()+" is off");
-               }
-               else{
-                    nodo.setNodeState(Node.state.on);
-                    System.out.println("Node "+nodo.getNodeName()+" is on");
-               }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private Status probeNode(String ip){
-
-        try{
-            System.out.println("Probing node: "+ ip);
-            Socket socket;
-            if (!nodeSockets.containsKey(ip)) {
-                socket = new Socket(ip, streamPort);
-                nodeSockets.put(ip, socket);
-            } else {
-                socket = nodeSockets.get(ip);
-            }
-            
-            //I have to send a message to the node and then interpret the answer if i receive the ack then the node is on
-            sendMessage(Message.PROBE, ip);
-            return Status.success;
-        }
-        catch(Exception e){
-            System.out.println("Error probing node: "+ip);
-            return Status.error;
-        }
-        
     }
 
 }

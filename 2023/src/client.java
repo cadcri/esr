@@ -8,36 +8,45 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.System;
 
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 public class Client {
 
     public int streamPort=30001;
     public int listeningPort=30000;
+    private int UDPPORT = 4445;
     private OutputStream os;
     private Socket readSocket;
     private Socket writeSocket;
     private PrintWriter pw;
     private BufferedReader in;
+    private Node node;
+
+    private UDPManager udpManager;
 
     private enum Message{
-    PROBE,
-    ACK,
-    JOIN,
-    JOIN_ACK,
-    LEAVE,
-    LEAVE_ACK,
-    TEXT
+        PROBE,
+        ACK,
+        JOIN,
+        JOIN_ACK,
+        LEAVE,
+        LEAVE_ACK,
+        TEXT
     }
 
 
-    public Client(String rpIP){
-        System.out.println("RP: "+rpIP);
-        new Thread(() ->{
-            createSockets(rpIP);
-        }).start();
-        
+    public Client(Node node){
+        this.node = node;
+        udpManager = new UDPManager(this.node);
+        // new Thread(() ->{
+        //     createSockets(rpIP);
+        // }).start();
+
+        //probeNeighbours();
+
         try{
-            read(this.readSocket);
             Scanner sc = new Scanner(System.in);
             String option = "";
             while(!option.equals("4")){
@@ -59,6 +68,7 @@ public class Client {
 
                     case("2"):
                         System.out.println("Getting neighbor list");
+                        System.out.println(node.getNeighbors().toString());
                         // sendText("getNeighbours", rpIP);
                         break;
 
@@ -82,6 +92,78 @@ public class Client {
             }
         }
     }
+
+
+    // private void probeNeighbours(){
+
+    //     new Thread(() -> {
+    //         //Create UDP Datagram Socket
+    //         System.out.println(this.udpSocket.isConnected());
+    //         while(this.udpSocket.isConnected()){
+
+    //             //Send heartbeat message to all the neighbours
+    //             for(Node neighbour: this.node.getNeighbors().values()){
+    //                 try{
+    //                     //Send heartbeat message to all the neighbours
+    //                     byte[] buf = new byte[256];
+    //                     buf = Message.PROBE.toString().getBytes();
+    //                     DatagramPacket packet = new DatagramPacket(buf, buf.length, InetAddress.getByName(neighbour.getNodeIP()), UDPPORT);
+    //                     this.udpSocket.send(packet);
+    //                     System.out.println("Probed node: "+neighbour.getNodeIP());
+    //                     Thread.sleep(1000);
+    //                 }
+    //                 catch(Exception e){
+    //                     System.out.println("Error sending heartbeat message");
+    //                 }
+    //             }
+    //         }
+    //     }).start();
+    // }
+
+    // private void udpHandler(){
+
+    //     new Thread(() -> {
+    //         System.out.println(this.udpSocket.isConnected());
+    //         while(this.udpSocket.isConnected()){
+    //             try{
+    //                 byte[] buf = new byte[256];
+    //                 DatagramPacket packet = new DatagramPacket(buf, buf.length);
+    //                 this.udpSocket.receive(packet);
+    //                 String received = new String(packet.getData(), 0, packet.getLength());
+    //                 System.out.println("Received UDP message: "+received);
+    //                 if(received.equals(Message.PROBE.toString())){
+    //                     //Send ACK
+    //                     buf = Message.ACK.toString().getBytes();
+    //                     packet = new DatagramPacket(buf, buf.length, packet.getAddress(), packet.getPort());
+    //                     this.udpSocket.send(packet);
+    //                 }
+    //                 else if(received.equals(Message.ACK.toString())){
+    //                      // Get the IP of the sender
+    //                     String senderIP = packet.getAddress().getHostAddress();
+    //                     System.out.println("Received message from: " + senderIP);
+    //                     for(Node nodo: this.node.getNeighbors().values()){
+    //                         if(nodo.getNodeIP().equals(senderIP)){
+    //                             nodo.setNodeState(Node.state.on);
+    //                             System.out.println("Node "+nodo.getNodeName()+" is on");
+    //                         }
+    //                     }   
+    //                 }
+    //             }
+    //             catch(Exception e){
+    //                 System.out.println("Error receiving UDP message");
+    //             }
+    //         }
+    //     }).start();
+    // }
+
+    // private void createUDPSockets(){
+    //     try{
+    //         this.udpSocket = new DatagramSocket();
+    //     }
+    //     catch(Exception e){
+    //         System.out.println("Error creating UDP socket");
+    //     }
+    // }
 
     private void createSockets(String rpIp){
         

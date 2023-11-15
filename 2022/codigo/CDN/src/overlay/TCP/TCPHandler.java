@@ -166,7 +166,7 @@ public class TCPHandler {
     
     public void readProbe(Socket client, BufferedReader in, String msg) throws Exception{
         boolean initialMsg = isProbeInitial(msg);
-
+        
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime timestamp = getTimestampFromProbe(msg, initialMsg);
         Duration duration = Duration.between(timestamp, now);

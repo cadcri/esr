@@ -30,7 +30,17 @@ public class main {
 
         getMyIp();
 
-        //System.out.println(nodeManager.nodes.keySet().toString());
+
+
+        // for(String nodoName: nodeManager.nodes.keySet()){
+        //     System.out.println("Node name: "+nodoName);
+        //     System.out.println("Vizinhos:");
+        //     for (Node nodo : nodeManager.nodes.get(nodoName).getNeighbors().values()){
+        //         System.out.println(nodo.getNodeName()+ " "+ nodo.getNodeIP());
+        //     }
+        // }
+
+    
         for (String nodoName: nodeManager.nodes.keySet()){
             if(nodeManager.nodes.get(nodoName).getNodeIP().equals(ip)){
                 Node.type nodeType = nodeManager.nodes.get(nodoName).getNodeType();
@@ -38,13 +48,13 @@ public class main {
                     System.out.println("I am the rendevouz point");
                     //Should clone the hashmap
                     //Removing the rp since he shouldnt send messages to himself
-                    nodeManager.nodes.remove(nodoName);
-                    new RP(nodeManager.nodes);
+                    
+                    new RP(nodeManager.nodes.get(nodoName));
                     break;
                 }
                 else if(nodeType == (Node.type.client)){
                     System.out.println("I am a client");
-                    new Client(nodeManager.nodes.get(nodeManager.rpName).getNodeIP());
+                    new Client(nodeManager.nodes.get(nodoName));
                     break;
                 }
                 else{
