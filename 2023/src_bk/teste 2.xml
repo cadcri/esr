@@ -1,0 +1,29 @@
+<nodes>
+    <node name="client1">
+        <gateway>10.0.0.21</gateway>
+        <type>client</type>
+    </node>
+
+    <node name="client2">
+        <gateway>10.0.1.21</gateway>
+        <type>client</type>
+    </node>
+
+    <node name="client3">
+        <gateway>10.0.2.20</gateway>
+        <type>client</type>
+    </node>
+
+    <node name="node1">
+        <gateway>10.0.2.21</gateway>
+        <type>node</type>   
+    </node>
+
+
+    <node name="rp">
+        <gateway>10.0.0.20</gateway>
+        <gateway>10.0.1.20</gateway>
+        <type>rp</type>
+    </node>
+
+</nodes>
