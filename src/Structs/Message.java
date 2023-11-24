@@ -1,3 +1,5 @@
+package Structs;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -5,7 +7,7 @@ import java.util.ArrayList;
 
 public class Message implements Serializable{
 
-    private enum Type{
+    public enum Type{
         PROBE,
         PROBE_ACK,
         ACK,
@@ -17,15 +19,12 @@ public class Message implements Serializable{
     }
 
     private Type tipo;
-    private ArrayList<Node> vizinhos;
+    private ArrayList<String> path;
     private LocalDateTime timeStampInit;
-    private LocalDateTime timeStampEnd;
-    private Packet packet;
-    private String ip;
+    private String src;
 
-    public Message(Type tipo, String ip) {
+    public Message(Type tipo) {
         this.tipo = tipo;
-        this.ip=ip;
         switch(this.tipo){
             case PROBE:
                 //This could lead to problems if the message is not sent immediately and 
@@ -36,17 +35,9 @@ public class Message implements Serializable{
             case PROBE_ACK:
                 //This could lead to problems if the message is not sent immediately and
                 //if the clocks are not synchronized
-                this.timeStampEnd = LocalDateTime.now();
+                //this.timeStampEnd = LocalDateTime.now();
                 break;
 
-            case LEAVE:
-                break;
-            
-            case LEAVE_ACK:
-                break;
-
-            case JOIN:
-                break;
         }
     }
 
@@ -54,11 +45,7 @@ public class Message implements Serializable{
         this.tipo = tipo;
         switch(this.tipo){
             case PROBE_ACK:
-                this.packet = packet;
-                break;
-            
-            case STREAM:
-                this.packet = packet;
+                //this.packet = packet;
                 break;
         }
     }
@@ -67,7 +54,7 @@ public class Message implements Serializable{
         this.tipo = tipo;
         switch(this.tipo){
             case JOIN_ACK:
-                this.vizinhos=vizinhos;
+                //this.vizinhos=vizinhos;
                 break;
 
         }
@@ -77,24 +64,18 @@ public class Message implements Serializable{
         return this.tipo;
     }
 
-    public ArrayList<Node> getVizinhos(){
-        return this.vizinhos;
+    public ArrayList<String> getPath(){
+        return this.path;
     }
 
     public LocalDateTime getTimeStampInit(){
         return this.timeStampInit;
     }
 
-    public LocalDateTime getTimeStampEnd(){
-        return this.timeStampEnd;
+
+    public void addNodeToPath(String node){
+        this.path.add(node);
     }
 
-    public Packet getPacket(){
-        return this.packet;
-    }
-
-    public void setTimeStampEnd(){
-        this.timeStampEnd = LocalDateTime.now();
-    }
 }
 
