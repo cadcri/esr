@@ -1,424 +1,26 @@
 
-
-// package TCP;
-
-// import java.io.*;
-// import java.net.*;
-// import Structs.*;
-// import java.util.*;
-
-// /**
-//  * The TCPManager class handles the management of TCP connections and communication.
-//  * It provides methods for creating listening and writing sockets, sending packets,
-//  * and handling incoming packets.
-//  */
-// public class TCPManager {
-//     private Socket writeSocket;
-//     private ServerSocket listeningSocket;
-//     private BufferedReader reader = null;
-//     private PrintWriter writer = null;
-//     private Node node;
-//     private int tcpDftPort = 44000;
-//     private HashMap<String, Socket> gateways;
-
-//     public TCPManager(Node node) throws IOException {
-//         this.node = node;
-//         this.gateways = new HashMap<>(); // Initialize the gateways HashMap
-//         new Thread(() -> {
-//             createListening(); // Call the method asynchronously
-//         }).start();
-//     }
-
-//     public void createListening() {
-//         try {
-//             System.out.println("Creating read socket");
-//             this.listeningSocket = new ServerSocket(tcpDftPort);
-//             read();
-//             System.out.println("Listening socket created");
-//         } catch (IOException e) {
-//             e.printStackTrace();
-//             System.out.println("Error creating listening socket");
-//             System.exit(1);
-//         }
-//     }
-
-//     public void createWriting(String gateway) {
-//         try {
-//             System.out.println("Creating write socket " + tcpDftPort + " to " + gateway);
-//             if (!this.gateways.containsKey(gateway)) {
-//                 Socket socket = new Socket(gateway, tcpDftPort); // Create a new Socket and connect it to the gateway
-//                 this.gateways.put(gateway, socket);
-//             } else {
-//                 System.out.println("Socket already created");
-//             }
-//         } catch (IOException e) {
-//             e.printStackTrace();
-//             System.out.println("Error creating write socket");
-//             System.exit(1);
-//         }
-//     }
-
-//     public void sendPacket(String gateway, TCPPacket packet) {
-//         try {
-//             if (this.gateways.containsKey(gateway)) {
-//                 ObjectOutputStream objectOutputStream = new ObjectOutputStream(this.gateways.get(gateway).getOutputStream());
-//                 objectOutputStream.writeObject(packet);
-//                 objectOutputStream.flush();
-//             } else {
-//                 createWriting(gateway);
-//                 sendPacket(gateway, packet);
-//             }
-//         } catch (Exception e) {
-//             System.out.println("Error sending packet: " + packet);
-//         }
-//     }
-
-//     public void read() {
-//         new Thread(() -> {
-//             while (this.listeningSocket == null) {
-//                 try {
-//                     Thread.sleep(100);
-//                 } catch (Exception e) {
-//                     System.out.println("Error sleeping");
-//                 }
-//             }
-//             while (!this.listeningSocket.isClosed()) {
-//                 try {
-//                     Socket clientSocket = this.listeningSocket.accept();
-                    
-//                     new Thread(() -> {
-//                         try {
-//                             System.out.println("Debug2");
-//                             ObjectInputStream objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
-                            
-//                             TCPPacket packet;
-//                             if ((packet = (TCPPacket) objectInputStream.readObject()) != null) {
-//                                 InetAddress clientAddress = clientSocket.getInetAddress();
-//                                 String clientIP = clientAddress.getHostAddress();
-//                                 System.out.println("Got message from: "+clientIP);
-//                                 handleResponse(packet, clientIP);
-                                
-//                                 // Process the received data here
-//                             }
-//                             objectInputStream.close();
-//                             //clientSocket.close();
-//                         }  catch (IOException e) {
-//                             System.out.println("Something went wrong reading data from client");
-//                         } catch (ClassNotFoundException e) {
-//                             System.out.println("Error deserializing object");
-//                         }
-//                         //try and reup the socket if that is the case that is breaking
-//                     }).start();
-
-//                 } catch (IOException e) {
-//                     e.printStackTrace();
-//                     System.out.println("Something went wrong accepting connections(Server Socket)");
-//                     System.exit(1);
-//                 }
-//             }
-//             System.out.println("Socket is disconnected");
-//         }).start();
-//     }
-
-//     private void handleResponse(TCPPacket packet, String clientIP) {
-//         switch (packet.getType()) {
-//             case JOIN:
-//             case JOIN_ACK:
-//                 vascoDaGama(packet, clientIP);
-//                 break;
-
-//             case LEAVE:
-//                 System.out.println("Leave request received");
-//                 // Send the leave ack to the gateway
-//                 // Set this gateway as inactive
-//                 break;
-
-//             case LEAVE_ACK:
-//                 System.out.println("Leaving");
-//                 // Close all sockets
-//                 // Go to the main screen so it can become active once again
-//                 break;
-//         }
-//     }
-
-//     private void vascoDaGama(TCPPacket packet, String clientIP) {
-//         try {
-//             switch (packet.getType()) {
-//                 case JOIN:
-//                     System.out.println("Join request received from: " + clientIP);
-//                     if (this.node.getNodeType() == Node.type.rp) {
-//                         // If it is the rp, it doesn't redirect the packet to the neighboring nodes, it sends the ack packet
-//                         // The ack packet should have the initial timestamp
-//                         System.out.println("Path to me: " + packet.getOutgoingPath().toString());
-//                         TCPPacket clone = packet.clone();
-//                         clone.addToIncomingPath(clientIP);
-//                         clone.setType(TCPPacket.Type.JOIN_ACK);
-//                         this.sendPacket(clientIP, clone);
-//                     } else {
-//                         // Send a clone of the packet to all of the neighboring nodes
-//                         // It should send to all of the neighboring nodes except the one it came from
-//                         if (packet.getSrc() == null) {
-//                             // Get the IP of the socket that received this
-//                             packet.setSrc(clientIP);
-//                         }
-//                         for (String neighbourGateway : this.node.getGateways()) {
-//                             TCPPacket clone = packet.clone();
-//                             if (!clientIP.equals(neighbourGateway)) {
-//                                 clone.addToOutgoingPath(neighbourGateway);
-//                                 clone.addToIncomingPath(clientIP);
-//                                 // Add the current node
-//                                 this.sendPacket(neighbourGateway, clone);
-//                             }
-//                         }
-//                     }
-//                     break;
-
-//                 case JOIN_ACK:
-//                     if (clientIP.equals(packet.getOutgoingPath().get(0))) {
-//                         // This is the node that tried to join
-//                         System.out.println("I was the node that joined");
-//                     } else {
-//                         System.out.println("Debug");
-//                         for (String neighbourGateway : this.node.getGateways()) {
-//                             if (packet.getIncomingPath().contains(neighbourGateway)) {
-//                                 // I want to redirect the packet to the next node in the path
-//                                 int index = packet.getIncomingPath().indexOf(neighbourGateway);
-//                                 System.out.println("Sending the packet to: " + packet.getIncomingPath().get(index));
-//                                 this.sendPacket(packet.getIncomingPath().get(index), packet);
-//                             }
-//                         }
-//                     }
-//                     break;
-//             }
-//         } catch (Exception e) {
-//             e.printStackTrace();
-//         }
-//     }
-// }
-
-
-
-// package TCP;
-
-// import java.io.*;
-// import java.net.*;
-// import Structs.*;
-// import java.util.*;
-
-// /**
-//  * The TCPManager class handles the management of TCP connections and communication.
-//  * It provides methods for creating listening and writing sockets, sending packets,
-//  * and handling incoming packets.
-//  */
-// public class TCPManager {
-//     private Socket writeSocket;
-//     private ServerSocket listeningSocket;
-//     private BufferedReader reader = null;
-//     private PrintWriter writer = null;
-//     private Node node;
-//     private int tcpDftPort = 44000;
-//     private HashMap<String, ObjectOutputStream> gateways;
-
-//     public TCPManager(Node node) throws IOException {
-//         this.node = node;
-//         this.gateways = new HashMap<>(); // Initialize the gateways HashMap
-//         new Thread(() -> {
-//             createListening(); // Call the method asynchronously
-//         }).start();
-//     }
-
-//     public void createListening() {
-//         try {
-//             System.out.println("Creating read socket");
-//             this.listeningSocket = new ServerSocket(tcpDftPort);
-//             read();
-//             System.out.println("Listening socket created");
-//         } catch (IOException e) {
-//             e.printStackTrace();
-//             System.out.println("Error creating listening socket");
-//             System.exit(1);
-//         }
-//     }
-
-//     public void createWriting(String gateway) {
-//         try {
-//             System.out.println("Creating write socket " + tcpDftPort + " to " + gateway);
-//             if (!this.gateways.containsKey(gateway)) {
-//                 Socket socket = new Socket(gateway, tcpDftPort); // Create a new Socket and connect it to the gateway
-//                 ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
-//                 this.gateways.put(gateway, objectOutputStream);
-//             } else {
-//                 System.out.println("Socket already created");
-//             }
-//         } catch (Exception e) {
-//             e.printStackTrace();
-//             System.out.println("Error creating write socket");
-//             System.exit(1);
-//         }
-//     }
-
-//     public void sendPacket(String gateway, TCPPacket packet) {
-//         try {
-//             if (this.gateways.containsKey(gateway)) {
-//                 ObjectOutputStream objectOutputStream = this.gateways.get(gateway);
-//                 objectOutputStream.writeObject(packet);
-//                 objectOutputStream.flush();
-//             } else {
-//                 createWriting(gateway);
-//                 sendPacket(gateway, packet);
-//             }
-//         } catch (Exception e) {
-//             System.out.println("Error sending packet: " + packet);
-//         }
-//     }
-
-//     public void read() {
-//         new Thread(() -> {
-//             while (this.listeningSocket == null) {
-//                 try {
-//                     Thread.sleep(100);
-//                 } catch (Exception e) {
-//                     System.out.println("Error sleeping");
-//                 }
-//             }
-//             while (true) {
-//                 try {
-//                     Socket clientSocket = this.listeningSocket.accept();
-                    
-//                     new Thread(() -> {
-//                         try {
-//                             ObjectInputStream objectInputStream = new ObjectInputStream(clientSocket.getInputStream());
-                            
-//                             TCPPacket packet;
-//                             if ((packet = (TCPPacket) objectInputStream.readObject()) != null) {
-//                                 InetAddress clientAddress = clientSocket.getInetAddress();
-//                                 String clientIP = clientAddress.getHostAddress();
-//                                 System.out.println("Got message from: "+clientIP);
-//                                 handleResponse(packet, clientIP);
-                                
-//                                 // Process the received data here
-//                             }
-                            
-//                             //clientSocket.close();
-//                         }  catch (IOException e) {
-//                             System.out.println("Something went wrong reading data from client");
-//                         } catch (ClassNotFoundException e) {
-//                             System.out.println("Error deserializing object");
-//                         }
-//                         catch(Exception e){
-//                             System.out.println("Exception out of bounds");
-//                             e.printStackTrace();
-//                         }
-//                         finally{
-//                             //objectInputStream.close();
-
-//                         }
-//                         //try and reup the socket if that is the case that is breaking
-//                     }).start();
-
-//                 } catch (Exception e) {
-//                     e.printStackTrace();
-//                     System.out.println("Something went wrong accepting connections(Server Socket)");
-//                     System.exit(1);
-//                 }
-//             }
-//             //System.out.println("Socket is disconnected");
-//         }).start();
-//     }
-
-//     private void handleResponse(TCPPacket packet, String clientIP) {
-//         switch (packet.getType()) {
-//             case JOIN:
-//             case JOIN_ACK:
-//                 vascoDaGama(packet, clientIP);
-//                 break;
-
-//             case LEAVE:
-//                 System.out.println("Leave request received");
-//                 // Send the leave ack to the gateway
-//                 // Set this gateway as inactive
-//                 break;
-
-//             case LEAVE_ACK:
-//                 System.out.println("Leaving");
-//                 // Close all sockets
-//                 // Go to the main screen so it can become active once again
-//                 break;
-//         }
-//     }
-
-//     private void vascoDaGama(TCPPacket packet, String clientIP) {
-//         try {
-//             switch (packet.getType()) {
-//                 case JOIN:
-//                     System.out.println("Join request received from: " + clientIP);
-//                     if (this.node.getNodeType() == Node.type.rp) {
-//                         // If it is the rp, it doesn't redirect the packet to the neighboring nodes, it sends the ack packet
-//                         // The ack packet should have the initial timestamp
-//                         System.out.println("Path to me: " + packet.getOutgoingPath().toString());
-//                         TCPPacket clone = packet.clone();
-//                         clone.addToIncomingPath(clientIP);
-//                         clone.setType(TCPPacket.Type.JOIN_ACK);
-//                         this.sendPacket(clientIP, clone);
-//                     } else {
-//                         // Send a clone of the packet to all of the neighboring nodes
-//                         // It should send to all of the neighboring nodes except the one it came from
-//                         if (packet.getSrc() == null) {
-//                             // Get the IP of the socket that received this
-//                             packet.setSrc(clientIP);
-//                         }
-//                         for (String neighbourGateway : this.node.getGateways()) {
-//                             TCPPacket clone = packet.clone();
-//                             if (!clientIP.equals(neighbourGateway)) {
-//                                 clone.addToOutgoingPath(neighbourGateway);
-//                                 clone.addToIncomingPath(clientIP);
-//                                 // Add the current node
-//                                 this.sendPacket(neighbourGateway, clone);
-//                             }
-//                         }
-//                     }
-//                     break;
-
-//                 case JOIN_ACK:
-//                     if (clientIP.equals(packet.getOutgoingPath().get(0))) {
-//                         // This is the node that tried to join
-//                         System.out.println("I was the node that joined");
-//                     } else {
-//                         System.out.println("Debug");
-//                         for (String neighbourGateway : this.node.getGateways()) {
-//                             if (packet.getIncomingPath().contains(neighbourGateway)) {
-//                                 // I want to redirect the packet to the next node in the path
-//                                 int index = packet.getIncomingPath().indexOf(neighbourGateway);
-//                                 System.out.println("Sending the packet to: " + packet.getIncomingPath().get(index));
-//                                 this.sendPacket(packet.getIncomingPath().get(index), packet);
-//                             }
-//                         }
-//                     }
-//                     break;
-//             }
-//         } catch (Exception e) {
-//             e.printStackTrace();
-//         }
-//     }
-// }
-
-
-
-
 package TCP;
 
 import java.io.*;
 import java.net.*;
 import Structs.*;
+import UDP.UDPManager;
+
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
 import java.time.LocalDateTime;
 
+//  * The TCPManager class handles the management of TCP connections and communication.
+//  * It provides methods for creating listening and writing sockets, sending packets,
+//  * and handling incoming packets.
+//  */
+
+
+//Probably add a class gateway to store the gateway and the latency to it and the status of it
 
 class RouteInfo {
     private String dest;
@@ -453,13 +55,12 @@ class RouteInfo {
 }
 
 public class TCPManager {
-    private Socket writeSocket;
+
     private ServerSocket listeningSocket;
-    private BufferedReader reader = null;
-    private PrintWriter writer = null;
     private Node node;
     private int tcpDftPort = 44000;
-    private HashMap<String, Socket> gateways;
+    private UDPManager udpManager;
+
 
     // Dest node and the latencies to it with the path it follows
     private HashMap<String, ArrayList<RouteInfo>> routes = new HashMap<>();
@@ -467,16 +68,16 @@ public class TCPManager {
 
     private Lock gatewaysLock = new ReentrantLock();
 
-    public TCPManager(Node node) throws IOException {
+    public TCPManager(Node node, UDPManager udpManager) throws IOException {
         this.node = node;
-        this.gateways = new HashMap<>(); // Initialize the gateways HashMap
+        this.udpManager = udpManager;
         new Thread(() -> {
             createListening(); // Call the method asynchronously
         }).start();
 
         executor.scheduleAtFixedRate(() -> {
             //System.out.println("Updating paths");
-            //probeNeighbors();
+            probeRoutes();
         }, 0, 1, TimeUnit.SECONDS);
     }
 
@@ -497,12 +98,20 @@ public class TCPManager {
         try {
             gatewaysLock.lock();
             try {
+                
+                if (gateway.equals("")){
+                    System.out.println("Setting bestPath");
+                    ArrayList<String> bestPath = this.getBestPath();
+                    packet.setOutgoingPath(bestPath);
+                    gateway=bestPath.get(0);
+                }
                 Socket socket = new Socket(gateway, tcpDftPort);
                 String serializedPacket = packet.serializa();
                 PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
                 writer.println(serializedPacket);
                 writer.flush();
                 socket.close();
+
             } finally {
                 gatewaysLock.unlock();
             }
@@ -511,6 +120,7 @@ public class TCPManager {
             System.out.println("Error sending packet: " + packet);
         }
     }
+
 
     public void read() {
         new Thread(() -> {
@@ -549,6 +159,14 @@ public class TCPManager {
 
     private void handleResponse(TCPPacket packet, String clientIP) {
         switch (packet.getType()) {
+            case PROBE:
+                handleProbe(packet, clientIP);
+                break;
+            
+            case PROBE_ACK:
+                handleProbeAck(packet, clientIP);
+                break;
+
             case JOIN:
             case JOIN_ACK:
                 vascoDaGama(packet, clientIP);
@@ -559,6 +177,25 @@ public class TCPManager {
                 // Send the leave ack to the gateway
                 // Set this gateway as inactive
                 break;
+            case STREAM:
+                handleStream(packet, clientIP);
+                break;
+            case STREAM_ACK:
+                handleStreamAck(packet, clientIP);
+                break;
+
+            case REQUEST_STREAM:
+                break;
+
+            case REQUEST_STREAM_ACK:
+                break;
+
+            case STREAM_END:
+                break;
+
+            case STREAM_END_ACK:
+                break;
+
 
             case LEAVE_ACK:
                 System.out.println("Leaving");
@@ -578,24 +215,6 @@ public class TCPManager {
                 case JOIN_ACK:
                     handleJoinAck(packet, clientIP);
                     break;
-                case STREAM:
-                    // handleStream(packet, clientIP);
-                    break;
-                case STREAM_ACK:
-                    // handleStreamAck(packet, clientIP);
-                    break;
-
-                case REQUEST_STREAM:
-                    break;
-
-                case REQUEST_STREAM_ACK:
-                    break;
-
-                case STREAM_END:
-                    break;
-                case STREAM_END_ACK:
-                    break;
-
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -606,21 +225,21 @@ public class TCPManager {
         if (this.node.getNodeType() == Node.type.rp) {
             // If it is the rp, it doesn't redirect the packet to the neighboring nodes, it sends the ack packet
             // The ack packet should have the initial timestamp
+            packet.addToIncomingPath(ClientIP);
             System.out.println("Join request received from: " + packet.getSrc());
-            System.out.println("Path to me: " + packet.getOutgoingPath().toString());
+            System.out.println("Path from me: " + packet.getIncomingPath().toString());
             TCPPacket clone = packet.clone();
-            clone.addToIncomingPath(ClientIP);
+            
             clone.setType(TCPPacket.Type.JOIN_ACK);
             this.sendPacket(ClientIP, clone);
 
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime packetInitTime = packet.getTimeStampInit();
 
-            Float latency = (float) (now.getNano() - packetInitTime.getNano()) / 1000000;
+            Float latency = (float) (packetInitTime.getNano()-now.getNano()) / 1000000;
 
             // Create the route info
-        
-            RouteInfo route = new RouteInfo(packet.getSrc(), latency, packet.getOutgoingPath());
+            RouteInfo route = new RouteInfo(packet.getSrc(), latency, packet.getIncomingPath());
             addRoute(route, packet.getSrc());
 
         } else {
@@ -632,12 +251,13 @@ public class TCPManager {
             for (String neighbourGateway : this.node.getGateways()) {
                 TCPPacket clone = packet.clone();
                 if (!ClientIP.equals(neighbourGateway)) {
-                    clone.addToOutgoingPath(neighbourGateway);
                     clone.addToIncomingPath(ClientIP);
+                    clone.addToOutgoingPath(neighbourGateway);
                     // Add the current node
                     this.sendPacket(neighbourGateway, clone);
                 }
             }
+
         }
     }
 
@@ -646,7 +266,8 @@ public class TCPManager {
             // This is the node that tried to join
             packet.setTimeStampEnd();
             Float latency = packet.getLatency();
-            RouteInfo routeInfo = new RouteInfo(packet.getSrc(), latency, packet.getIncomingPath());
+            ArrayList<String> temp = packet.getOutgoingPath();
+            RouteInfo routeInfo = new RouteInfo(packet.getSrc(), latency/2, temp);
             // add this path
             addRoute(routeInfo, packet.getSrc());
         } else {
@@ -662,18 +283,155 @@ public class TCPManager {
 
     private void handleStream(TCPPacket packet, String clientIP) {
         // Handle the stream packet
-        // TODO: Implement stream handling logic
         if(this.node.getNodeType()==Node.type.rp){
             //send the stream ack
+
             TCPPacket clone = packet.clone();
             clone.setType(TCPPacket.Type.STREAM_ACK);
-            this.sendPacket(clientIP, clone);
-            //If i already have the stream and it is up i just neglectit
+            
+            ArrayList<String> bestPath = this.getBestPath(packet.getSrc());
+            if(bestPath.size()==0){
+                System.out.println("No route to destination");
+                return;
+            }
 
-        
+            //Start the multicastSocket
+            Integer[] stream = this.udpManager.addStream(packet.getPathToFile());
+            if(stream==null){
+                System.out.println("Error creating multicast socket");
+                return;
+            }
+
+            clone.setIncomingPath(bestPath);
+            clone.setStreamId(stream[0]);
+            clone.setStreamPort(stream[1]);
+            this.sendPacket(clientIP, clone);
+            
         }
         else{
             //send the stream to the next node
+            //Start the multicast in each node the packet goes through and 
+            //Join the multicastgroup from the port the rp just set
+            if (packet.getSrc() == null || packet.getSrc().equals("") || packet.getSrc().equals("null")) {
+                packet.setSrc(clientIP);
+            }
+            for (String neighbourGateway : this.node.getGateways()) {
+                if (packet.getOutgoingPath().contains(neighbourGateway)) {
+                    // I want to redirect the packet to the next node in the path
+                    int index = packet.getOutgoingPath().indexOf(neighbourGateway);
+                    this.sendPacket(packet.getOutgoingPath().get(index), packet);
+                }
+            }
+        }
+    }
+
+    private void handleStreamAck(TCPPacket packet, String clientIP) {
+        // Handle the stream acknowledgment packet
+        if (clientIP.equals(packet.getOutgoingPath().get(0))) {
+            //Start the unicast streaming of the stream packets to the rp
+            System.out.println("Starting the stream: "+packet.getStreamId()+ " path to file: "+packet.getPathToFile());
+            this.udpManager.startStream(packet.getStreamId(), packet.getPathToFile(), packet.getOutgoingPath());
+        }
+        else{
+            //send the stream ack to the next node
+            for (String neighbourGateway : this.node.getGateways()) {
+                if (packet.getIncomingPath().contains(neighbourGateway)) {
+                    // I want to redirect the packet to the next node in the path
+                    int index = packet.getIncomingPath().indexOf(neighbourGateway);
+                    this.sendPacket(packet.getIncomingPath().get(index), packet);
+                    
+                    //Open the port to receive the stream
+                }
+            }
+        }
+    }
+
+    private void probeRoutes(){
+        //Only the rp executes this
+        //For every route it exists
+        //Send a probe packet to the destination
+        //Set the route status as offline
+        //If the rp receives a probe ack from the destination
+        //Set the route status as online
+        //Update the latency
+        if(this.node.getNodeType()==Node.type.rp){
+            for(String dest : this.routes.keySet()){
+                for(RouteInfo route : this.routes.get(dest)){
+                    //Send the probe packet
+                    TCPPacket packet = new TCPPacket(TCPPacket.Type.PROBE);
+                    ArrayList<String> path = new ArrayList<String>(route.getPath());
+                    String firstNode = path.remove(path.size()-1);
+                    packet.setOutgoingPath(path);
+                    this.sendPacket(firstNode, packet);
+                    //Set the path status as offline
+                }
+            }
+        }
+    }
+
+    private void handleProbe(TCPPacket packet, String clientIP){
+        //Only the rp send this packet to the routes he has
+        //The other nodes just forward the packet
+        //when the packet reaches the destination node he should update the latency and send it back
+        //the rp should update the latency of the route
+        if(packet.getOutgoingPath().size()==packet.getIncomingPath().size()){
+            //This is the destination node of the probe
+            //Send the probe ack
+            packet.addToIncomingPath(clientIP);
+            TCPPacket clone = packet.clone();
+            clone.setType(TCPPacket.Type.PROBE_ACK);
+            ArrayList<String> path = new ArrayList<String>(packet.getIncomingPath());
+            String firstNode = path.remove(path.size()-1);
+            clone.setIncomingPath(path);
+            this.sendPacket(firstNode, clone);
+            //Update the latency of the route
+            for(String dest : this.routes.keySet()){
+                for(RouteInfo route : this.routes.get(dest)){
+                    //we should compare the route, if it is the same we update the latency
+                    if(route.getPath().equals(packet.getIncomingPath())){
+                        route.setLatency(packet.getLatency());
+                        System.out.println("Found the route");
+                    }
+                }
+            }
+        }
+        else{
+            if(packet.getSrc() == null || packet.getSrc().equals("") || packet.getSrc().equals("null")){
+                packet.setSrc(clientIP);
+            }
+            //Forward the packet
+            for (String neighbourGateway : this.node.getGateways()) {
+                if (packet.getOutgoingPath().contains(neighbourGateway)) {
+                    // I want to redirect the packet to the next node in the path
+                    //Update the incoming path of the packet
+                    int index = packet.getOutgoingPath().indexOf(neighbourGateway);
+                    packet.addToIncomingPath(clientIP);
+                    this.sendPacket(packet.getOutgoingPath().get(index), packet);
+                }
+            }
+        }
+    }
+
+    private void handleProbeAck(TCPPacket packet, String clientIP) {
+        // Handle the probe ack packet
+        if (this.node.getNodeType() == Node.type.rp) {
+            //Get the new latency
+            System.out.println("Here, "+packet.getLatency());
+            float latency = packet.getLatency();
+        
+            //Update the latency of the route
+            for(String dest : this.routes.keySet()){
+                for(RouteInfo route : this.routes.get(dest)){
+                    //we should compare the route, if it is the same we update the latency
+                    if(route.getPath().equals(packet.getOutgoingPath())){
+                        route.setLatency(latency);
+                    }
+                }
+            }
+
+        }
+        else{
+            //send the stream ack to the next node
             for (String neighbourGateway : this.node.getGateways()) {
                 if (packet.getIncomingPath().contains(neighbourGateway)) {
                     // I want to redirect the packet to the next node in the path
@@ -684,10 +442,9 @@ public class TCPManager {
         }
     }
 
-    private void handleStreamAck(TCPPacket packet, String clientIP) {
-        // Handle the stream acknowledgment packet
-        // TODO: Implement stream acknowledgment handling logic
-    }
+
+
+
 
     private void addRoute(RouteInfo route, String destination) {
         if (!this.routes.containsKey(destination)) {
@@ -727,6 +484,37 @@ public class TCPManager {
         }
         return false;
     }
+
+    private ArrayList<String> getBestPath(){
+        ArrayList<String> bestPath = new ArrayList<>();
+        Float bestLatency = Float.MAX_VALUE;
+        for(String dest : this.routes.keySet()){
+            for(RouteInfo route : this.routes.get(dest)){
+                if(route.getLatency()<bestLatency){
+                    bestLatency=route.getLatency();
+                    bestPath=route.getPath();
+                }
+            }
+        }
+        return bestPath;
+    }
+
+    private ArrayList<String> getBestPath(String destination){
+        ArrayList<String> bestPath = new ArrayList<>();
+        Float bestLatency = Float.MAX_VALUE;
+        if(!this.routes.containsKey(destination)){
+            System.out.println("No route to destination: "+ destination);
+            return bestPath;
+        }
+        for(RouteInfo route : this.routes.get(destination)){
+            if(route.getLatency()<bestLatency){
+                bestLatency=route.getLatency();
+                bestPath=route.getPath();
+            }
+        }
+        return bestPath;
+    }
+
 
     public void listRoutes(){
         

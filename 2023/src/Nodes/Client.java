@@ -9,15 +9,12 @@ import java.util.Scanner;
 import java.io.*;
 import java.lang.Thread;
 import java.lang.System;
+import java.util.Base64;
 import java.util.HashMap;
 
 
 public class Client {
-
-    private int UDPPORT = 4445;
     private OutputStream os;
-    private Socket readSocket;
-    private Socket writeSocket;
     private PrintWriter pw;
     private BufferedReader in;
     private Node node;
@@ -40,7 +37,8 @@ public class Client {
 
         // udpManager = new UDPManager(this.node);
         try {
-            this.tcpManager = new TCPManager(this.node);
+            this.udpManager = new UDPManager(this.node);
+            this.tcpManager = new TCPManager(this.node, this.udpManager);
         } catch (Exception e) {
             System.out.println("Error creating TCPManager");
         }
@@ -66,15 +64,18 @@ public class Client {
                             //this.tcpManager.createWriting(gateway);
                             TCPPacket packet = new TCPPacket(TCPPacket.Type.JOIN);
                             packet.addToOutgoingPath(gateway);
+                            //packet.addToIncomingPath(gateway);
                             this.tcpManager.sendPacket(gateway, packet);
                         }
                         break;
                     
                     case "2":
                         System.out.println("Starting streaming");
+                        System.out.println("Enter the full path of the file you want to stream: ");
+                        String path = sc.nextLine();
                         TCPPacket packet = new TCPPacket(TCPPacket.Type.STREAM);
-                        packet.addToOutgoingPath(this.node.getGateways().get(0));
-                        this.tcpManager.sendPacket(this.node.getGateways().get(0), packet);
+                        packet.setPathToFile(path);
+                        this.tcpManager.sendPacket("",packet);
                         break;
 
                     case "3":
@@ -84,7 +85,8 @@ public class Client {
             }
         } finally {
             try {
-                //udpManager.closeSocket();
+                //udpManager.leave();
+                //tcpManager.leave();
                 return;
             } catch (Exception e) {
                 System.out.println("Error closing sockets");
@@ -92,59 +94,8 @@ public class Client {
         }
     }
 
-
-    // private void createSockets(String rpIp) {
-
-    //     try {
-
-    //         // fechar o socket
-    //         System.out.println("Creating write socket" + streamPort);
-    //         this.writeSocket = new Socket(rpIp, streamPort);
-    //         System.out.println("Creating read socket");
-    //         ServerSocket socket = new ServerSocket(listeningPort);
-    //         System.out.println("Reading socket created");
-    //         this.readSocket = socket.accept();
-    //         in = new BufferedReader(new InputStreamReader(this.readSocket.getInputStream()));
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //         System.out.println("Error creating sockets");
-    //         System.exit(1);
-    //     }
-
-    // }
-
-
-    // public void sendText(Message message, String to) {
-    //     System.out.println("Sending text: " + message + " to: " + to);
-
-    //     try {
-    //         synchronized (writeSocket) {
-    //             // Should close the socket
-    //             System.out.println("Connected to " + to + " on port " + streamPort);
-    //             pw = new PrintWriter(writeSocket.getOutputStream(), true);
-    //             pw.println(message);
-    //         }
-    //     } catch (Exception e) {
-    //         System.out.println("Error sending message: " + message);
-    //     }
-    // }
-
-    public void read(Socket socket) {
-
-        new Thread(() -> {
-            while (this.readSocket.isConnected()) {
-                try {
-                    String inputLine;
-                    while ((inputLine = in.readLine()) != null) {
-                        System.out.println("Received data: " + inputLine);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.out.println("Something went wrong accepting connections(Server Socket)");
-                    System.exit(1);
-                }
-            }
-            System.out.println("Socket is disconnected");
-        }).start();
+    public String encode(String path){
+        byte[] bytes = Base64.getEncoder().encode(path.getBytes());
+        return new String(bytes);
     }
 }
