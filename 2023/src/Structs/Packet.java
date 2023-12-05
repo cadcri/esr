@@ -1,7 +1,7 @@
 package Structs;
 import java.io.Serializable;
 
-public class Packet implements Serializable{
+public class Packet implements Serializable {
 
     public enum Type{
         TEXT,

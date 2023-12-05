@@ -4,6 +4,12 @@ import TCP.*;
 import UDP.*;
 import Structs.*;
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.net.*;
 import java.util.Scanner;
 import java.io.*;
@@ -13,7 +19,7 @@ import java.util.Base64;
 import java.util.HashMap;
 
 
-public class Client {
+public class Client extends JFrame implements ActionListener {
     private OutputStream os;
     private PrintWriter pw;
     private BufferedReader in;
@@ -24,12 +30,16 @@ public class Client {
 
     private Boolean connected = false;
 
+    // CELSO ADDED
+    JLabel iconLabel;
+    Timer cTimer;
+    byte[] cBuf;
 
     public Client(Node node) {
+        super("Clientes");
         this.node = node;
 
         //this.tcpHandler = new Manager(this.node);
-        
 
         System.out.println("Num dft gateways: " + this.node.getGateways().size());
         System.out.println("Dft gateways: " + this.node.getGateways().toString());
@@ -92,10 +102,76 @@ public class Client {
                 System.out.println("Error closing sockets");
             }
         }
+
+        addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent e) {
+                System.exit(0);
+            }
+        });
+
+        JButton setupButton = new JButton("Setup");
+        JButton playButton = new JButton("Play");
+        JButton pauseButton = new JButton("Pause");
+        JButton tearButton = new JButton("Teardown");
+        JPanel mainPanel = new JPanel();
+        JPanel buttonPanel = new JPanel();
+        iconLabel = new JLabel();
+        buttonPanel.setLayout(new GridLayout(1, 0));
+        buttonPanel.add(setupButton);
+        buttonPanel.add(playButton);
+        buttonPanel.add(pauseButton);
+        buttonPanel.add(tearButton);
+        iconLabel.setIcon(null);
+        mainPanel.setLayout(null);
+        mainPanel.add(iconLabel);
+        mainPanel.add(buttonPanel);
+        iconLabel.setBounds(0, 0, 380, 280);
+        buttonPanel.setBounds(0, 280, 380, 50);
+        getContentPane().add(mainPanel, BorderLayout.CENTER);
+        setSize(new Dimension(390, 370));
+        setVisible(true);
+        //////////////////////////// STOP GUI
+
+        playButton.addActionListener(e -> {
+            cTimer.start();
+        });
+        tearButton.addActionListener(e -> {
+            cTimer.stop();
+            System.exit(0);
+        });
+        cTimer = new Timer(20, this);
+        cTimer.setInitialDelay(0);
+        cTimer.setCoalesce(true);
+        cBuf = new byte[15000];
+        cTimer.start(); //// TOREMOVE
     }
 
     public String encode(String path){
         byte[] bytes = Base64.getEncoder().encode(path.getBytes());
         return new String(bytes);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        DatagramPacket rcvdp = new DatagramPacket(cBuf, cBuf.length);
+
+        try {
+            int video_byte_size;
+
+            // utilisar aqui o .receive do datagram socket, depois :
+            // meter en cBuf o conteudo da imagem
+            // meter em video_byte_size o tamanho de cBuf
+
+            Toolkit toolkit = Toolkit.getDefaultToolkit();
+            Image image = toolkit.createImage(cBuf, 0, video_byte_size);
+
+            ImageIcon icon = new ImageIcon(image);
+            iconLabel.setIcon(icon);
+
+        } catch (InterruptedIOException iioe) {
+            System.out.println("Nothing to read");
+        } catch (IOException ioe) {
+            System.out.println("Exception caught: " + ioe);
+        }
     }
 }

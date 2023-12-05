@@ -18,7 +18,7 @@ public class main {
     public static void main(String[] args){
         
         XMLParser parser = new XMLParser();
-        HashMap<String, Node> nodes=new HashMap<>();
+        HashMap<String, Node> nodes;
         if (args.length==0){
             //System.out.println("Please specify the path to the overlay file");
             //return;

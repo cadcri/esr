@@ -24,7 +24,6 @@ public class RP{
     //Content streams hashmap, contains the streamname and the nodes that are available to stream it
     //It should also have if the stream is ongoing and how many nodes are consuming it
 
-
     private UDPManager udpManager;
     private Node node;
     private TCPManager tcpManager;
