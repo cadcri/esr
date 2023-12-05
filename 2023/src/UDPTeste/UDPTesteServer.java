@@ -17,7 +17,9 @@ public class UDPTesteServer {
         DatagramSocket socket;
         try {
             System.out.println("10.0.2.20");
-            socket = new DatagramSocket(4555, InetAddress.getByName("10.0.2.20"));
+            byte[] ipAddr = new byte[]{10, 0, 2, 20};
+            InetAddress addr = InetAddress.getByAddress(ipAddr);
+            socket = new DatagramSocket(4555, addr);
         } catch (SocketException | UnknownHostException e) {
             throw new RuntimeException(e);
         }
