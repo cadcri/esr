@@ -20,7 +20,6 @@ public class PacketManager {
             System.out.println("An error has orccured while reading the video file");
             
         }
-
     }
 
     public void readVideo() throws Exception{

@@ -33,7 +33,7 @@ import java.util.Random;
  */
 
 
-public class UDPManager{
+public class UDPManager {
 
     private DatagramSocket udpSocket;
     private int UDPPORT = 4445;
@@ -43,10 +43,9 @@ public class UDPManager{
     //Stream id followed by the multicasSocket
     private HashMap<Integer, MulticastSocket> streams = new HashMap<Integer, MulticastSocket>();
 
-
     public UDPManager(Node node){
         this.node=node;
-        try{
+        try {
             this.initUnicast();
         }
         catch(Exception e){

@@ -15,7 +15,7 @@ public class RTPPacket {
     private byte[] header;
     private int payload_size;
     private byte[] payload;
-    //how should i store the path?
+    // how should i store the path?
     private byte[] path;
 
 
