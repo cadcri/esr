@@ -22,11 +22,9 @@ public class UDPTesteServer {
         }
 
         // loop nos frames do video
-        for (int i = 0; i < packetManager.getNumberOfFrames(); i++){
+        for (int i = 1; i < packetManager.getNumberOfFrames(); i++){
             byte[] frame = packetManager.getFrame(i);
-            for (byte a : frame){
-                System.out.println(a);
-            }
+
             // criacao do packet para enviar a partir dum RTPPacket
             RTPPacket rtpPacket = new RTPPacket(0, i, 10*i, frame, frame.length, "teste");
             byte[] packetContent = rtpPacket.getContent();
