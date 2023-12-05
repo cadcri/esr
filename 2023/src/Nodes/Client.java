@@ -75,7 +75,9 @@ public class Client {
                         String path = sc.nextLine();
                         TCPPacket packet = new TCPPacket(TCPPacket.Type.STREAM);
                         packet.setPathToFile(path);
-                        this.tcpManager.sendPacket("",packet);
+                        packet.setSrc(null);
+                        packet.setDest(null);
+                        this.tcpManager.sendPacket(null,packet);
                         break;
 
                     case "3":

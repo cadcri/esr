@@ -3,9 +3,8 @@ package UDP;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
- 
 public class RTPPacket {
-    private int HEADER_SIZE = 12;
+    private int HEADER_SIZE = 21;
 
     private int streamID;
     private int sequenceNr;
@@ -15,35 +14,26 @@ public class RTPPacket {
     private byte[] header;
     private int payload_size;
     private byte[] payload;
-    //how should i store the path?
-    private byte[] path;
+    private byte[] destIp;
 
 
-    public RTPPacket(int streamID, int frameNb, int time, byte[] data, int data_length, String path){
+    public RTPPacket(int streamID, int frameNb, int time, byte[] data, int data_length, String destIp){
         ByteBuffer b = ByteBuffer.allocate(4);
         b.putInt(streamID);
         byte[] result = b.array();
 
+        this.destIp = destIp.getBytes();
+        System.out.println("DestIp:"+ new String(this.destIp));
+
         // fill by default header fields
         ssrc = 0;
-
-        // add the path to the header
-        byte [] pathBytes = path.getBytes();
-        byte [] pathSize = new byte[4];
-        pathSize[0] = (byte) (pathBytes.length >> 24);
-        pathSize[1] = (byte) (pathBytes.length >> 16);
-        pathSize[2] = (byte) (pathBytes.length >> 8);
-        pathSize[3] = (byte) (pathBytes.length);
     
         // fill changing header fields
         this.streamID = streamID;
         sequenceNr = frameNb;
         timestamp = time;
     
-        //this now has to accomodae the path and the path size for decoding
-        header = new byte[HEADER_SIZE+pathBytes.length+4];
-        //add path to header
-        System.arraycopy(pathSize, 0, header, 0, pathBytes.length);
+        header = new byte[HEADER_SIZE];
     
         header[0] = result[2];
         header[1] = result[3];
@@ -58,11 +48,19 @@ public class RTPPacket {
         header[10] = (byte)(ssrc >> 8);
         header[11] = (byte)(ssrc & 0xFF);
 
+        byte[] destIpBytes = destIp.getBytes();
+        if (destIpBytes.length <= HEADER_SIZE - 12) {
+            System.arraycopy(destIpBytes, 0, header, 12, destIpBytes.length);
+        } else {
+            throw new IllegalArgumentException("Destination IP exceeds header size");
+        }
+
         payload_size = data_length;
         payload = new byte[data_length];
 
-        for (int i=0; i < data_length; i++)
-            payload[i] = data[i];
+        System.arraycopy(data, 0, payload, 0, data_length);
+
+
     }
 
     public RTPPacket(byte[] packet, int packet_size){
@@ -98,6 +96,14 @@ public class RTPPacket {
             packet[i+HEADER_SIZE] = payload[i];
     
         return payload_size + HEADER_SIZE;
+    }
+
+    public String getDestIp(){
+        String res = "";
+        for(int i = 12; i < HEADER_SIZE; i++){
+            res += (char)header[i];
+        }
+        return res;
     }
 
 
@@ -160,7 +166,8 @@ public class RTPPacket {
         System.out.print("[RTP-Header] ");
         System.out.println("Stream ID: " + this.streamID
                            + ", SequenceNumber: " + sequenceNr
-                           + ", TimeStamp: " + timestamp);
+                           + ", TimeStamp: " + timestamp
+                           + ", DestIp: " + new String(destIp));
     }
 
     public int unsigned_int(int nb) {

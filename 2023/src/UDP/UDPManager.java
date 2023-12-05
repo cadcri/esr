@@ -1,4 +1,5 @@
 package UDP;
+import TCP.RouteInfo;
 
 import Structs.*;
 
@@ -14,6 +15,7 @@ import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Random;
+import java.net.DatagramPacket;
 
 /*
  * UDPManager
@@ -39,9 +41,12 @@ public class UDPManager{
     private int UDPPORT = 4445;
     private Node node;
     private Boolean connected=false;
-    private HashMap<Integer, Integer> ports = new HashMap<Integer, Integer>();
-    //Stream id followed by the multicasSocket
-    private HashMap<Integer, MulticastSocket> streams = new HashMap<Integer, MulticastSocket>();
+    //This will have the routing info of each node
+    private HashMap<String, ArrayList<RouteInfo>> routes = new HashMap<String, ArrayList<RouteInfo>>();
+    //Stream id followed by the streamId
+    private ArrayList<Integer> streams = new ArrayList<Integer>();
+    //HashMap with the streamId and an arrayList of udp sockets to redirect the streams
+    private HashMap<Integer, ArrayList<DatagramSocket>> streamSockets = new HashMap<Integer, ArrayList<DatagramSocket>>();
 
 
     public UDPManager(Node node){
@@ -70,48 +75,22 @@ public class UDPManager{
         }
     }
 
-    public Integer[] addStream(String pathToFile) {
+    public Integer addStream() {
         
         try {
-            int port = new Random().nextInt(65535 - 49152) + 49152;
-            while(this.ports.containsValue(port)){
-                port = new Random().nextInt(65535 - 49152) + 49152;
-            }
-            MulticastSocket multicastSocket = new MulticastSocket(port);
-            int streamId = this.streams.size();
-            this.streams.put(streamId, multicastSocket);
-            this.ports.put(streamId, port);
-            Integer[] ret = {streamId, port};
-            return ret;
+            //Lets generate the streamId
+            Integer streamId = this.streams.size()+1;
+            this.streams.add(streamId);
+            return streamId;
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("Error creating multicast socket");
             return null;
         }
 
     }
 
-    public void joinStream(int streamId, int multicastPort) {
-        if (streams.containsKey(streamId)) {
-            try {
-                MulticastSocket multicastSocket = streams.get(streamId);
-                //Fix
-                InetAddress multicastGroup = InetAddress.getByName("225.0.0.1"); // Replace with the actual multicast group address
 
-                multicastSocket.joinGroup(multicastGroup);
-                multicastSocket.connect(multicastGroup, multicastPort);
-
-                System.out.println("Joined multicast stream for streamId: " + streamId);
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("Error joining multicast stream");
-            }
-        } else {
-            System.out.println("Stream does not exist");
-        }
-    }
-
-    public void startStream(int StreamId, String pathToFile, ArrayList<String> path){
+    public void startStream(int StreamId, String pathToFile){
         try{
 
             //First generate the packets,
@@ -119,23 +98,46 @@ public class UDPManager{
             //Then we need to read the file and generate the packets
             //Then we need to send the packets to the rp via unicast
             new Thread(() -> {
-                
+                  // packet manager criado a partir do nome do ficheiro em input em primeiro argumento
+                PacketManager packetManager = new PacketManager(pathToFile);
 
-                //Generate the packets
-                PacketManager packetManager;
-                //threading this so the program isnt in halt while waiting for the packets and can continue encoding the path
-                packetManager = new PacketManager(pathToFile);
-
-
-                String pathEnc = "";
-                for(String s: path){
-                    pathEnc += s + ";";
+                // criacao do socket
+                DatagramSocket socket;
+                try {
+                    socket = new DatagramSocket();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
 
-                System.out.println("Packets: "+ packetManager.getNumberOfFrames());
-                System.out.println("Path encoded: "+pathEnc);
-                //first encode the path for the packets to follow
-                //Send the packets to the rp
+                ArrayList<String> bestPath = getBestPath();
+                String proxNode = bestPath.get(0);
+
+                // loop nos frames do video
+                for (int i = 1; i < packetManager.getNumberOfFrames(); i++){
+                    //Adicionar prevenção de falhas relativamente ao path de destino(for loop)
+                    byte[] frame = packetManager.getFrame(i);
+
+                    // criacao do packet para enviar a partir dum RTPPacket
+                    RTPPacket rtpPacket = new RTPPacket(StreamId, i, 10*i, frame, frame.length, bestPath.get(bestPath.size()-1));
+                    byte[] packetContent = rtpPacket.getContent();
+
+                    // envio do packet ao IP em argumento 1 na porta 4555
+                    try {
+                        InetAddress nodeAdd = InetAddress.getByName(proxNode);
+                        DatagramPacket packet =  new DatagramPacket(packetContent, packetContent.length,nodeAdd , UDPPORT);
+                        socket.send(packet);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    // esperamos algums milli segundos ate enviar de novo
+                    try {
+                        final int TIME_BETWEEN_FRAMES = 100; // in ms
+                        Thread.sleep(TIME_BETWEEN_FRAMES);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
                 
             }).start();
         }catch(Exception e){
@@ -172,11 +174,17 @@ public class UDPManager{
     public void handleResponse(DatagramPacket packet){
         try{
             if(this.node.getNodeType()==Node.type.node){
-                //retransmit();
+                //First we need to get the dest of the packet
+                RTPPacket pac = new RTPPacket(packet.getData(), packet.getLength());
+                ArrayList<String> bestPath = getBestPath(pac.getDestIp());
+                String proxNode = bestPath.get(0);
+                InetAddress nodeAdd = InetAddress.getByName(proxNode);  
+                DatagramPacket newPacket =  new DatagramPacket(packet.getData(), packet.getLength(),nodeAdd , UDPPORT);
+                udpSocket.send(newPacket);
             }
-            else{
-                String received = new String(packet.getData(), 0, packet.getLength());
-                System.out.println(received);
+            if(this.node.getNodeType()==Node.type.rp){
+                //the rp will receive the packets and redirect them 
+                
             }
 
         }
@@ -197,6 +205,40 @@ public class UDPManager{
             e.printStackTrace();
             System.out.println("Error closing UDP socket");
         }
+    }
+
+    public void setRoutes(HashMap<String, ArrayList<RouteInfo>> routes) {
+        this.routes = routes;
+    }
+
+    private ArrayList<String> getBestPath(){
+        ArrayList<String> bestPath = new ArrayList<>();
+        Float bestLatency = Float.MAX_VALUE;
+        for(String dest : this.routes.keySet()){
+            for(RouteInfo route : this.routes.get(dest)){
+                if(route.getLatency()<bestLatency){
+                    bestLatency=route.getLatency();
+                    bestPath=route.getPath();
+                }
+            }
+        }
+        return bestPath;
+    }
+
+    private ArrayList<String> getBestPath(String destination){
+        ArrayList<String> bestPath = new ArrayList<>();
+        Float bestLatency = Float.MAX_VALUE;
+        if(!this.routes.containsKey(destination)){
+            System.out.println("No route to destination: "+ destination);
+            return bestPath;
+        }
+        for(RouteInfo route : this.routes.get(destination)){
+            if(route.getLatency()<bestLatency){
+                bestLatency=route.getLatency();
+                bestPath=route.getPath();
+            }
+        }
+        return bestPath;
     }
 
 }

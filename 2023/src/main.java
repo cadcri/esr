@@ -30,6 +30,8 @@ public class main {
             nodes = parser.parse(args[0]);
             getMyHostname();
         }
+
+        
         //System.out.println(manager.nodes.size());
         // for(Node nodo: manager.nodes.values()){
         //     System.out.println(nodo.toString());
@@ -63,7 +65,7 @@ public class main {
             }
             else if(nodo.getNodeType()==Node.type.node){
                 System.out.println("Node");
-                //Node node = new Node(nodo);
+                new FwNode(nodo);
                 //node.start();
             }
         }

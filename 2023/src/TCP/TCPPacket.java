@@ -23,6 +23,7 @@ public class TCPPacket implements Serializable {
     }
 
     private String src = null;
+    private String dest = null;
     private LocalDateTime timeStampInit;
     private LocalDateTime timeStampEnd;
     private Type tipo;
@@ -48,6 +49,14 @@ public class TCPPacket implements Serializable {
 
     public void setType(Type type) {
         this.tipo = type;
+    }
+
+    public String getDest(){
+        return this.dest;
+    }
+
+    public void setDest(String dest){
+        this.dest=dest;
     }
 
     public void setPathToFile(String pathToFile) {
@@ -159,6 +168,7 @@ public class TCPPacket implements Serializable {
         clone.setStreamPort(this.streamPort);
         clone.setStreamInterface(this.streamInteface);
         clone.setPathToFile(this.pathToFile);
+        clone.setDest(this.dest);
         return clone;
     }
 
@@ -190,6 +200,7 @@ public class TCPPacket implements Serializable {
         serialized.append(this.streamPort).append("$$");
         serialized.append(this.streamInteface).append("$$");
         serialized.append(this.pathToFile).append("$$");
+        serialized.append(this.dest).append("$$");
         serialized.append("$$");
         return serialized.toString();
     }
@@ -220,6 +231,7 @@ public class TCPPacket implements Serializable {
         packet.setStreamPort(Integer.parseInt(fields[9]));
         packet.setStreamInterface(fields[10]);
         packet.setPathToFile(fields[11]);
+        packet.setDest(fields[12]);
         return packet;
     }
 
