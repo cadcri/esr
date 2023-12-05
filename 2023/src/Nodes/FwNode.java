@@ -29,8 +29,6 @@ public class FwNode {
         this.node = node;
 
         //this.tcpHandler = new Manager(this.node);
-        
-
         System.out.println("Num dft gateways: " + this.node.getGateways().size());
         System.out.println("Dft gateways: " + this.node.getGateways().toString());
 

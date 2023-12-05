@@ -4,11 +4,11 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import TCP.*;
 import UDP.*;
@@ -124,6 +124,13 @@ public class Client extends JFrame implements ActionListener {
         cTimer.setCoalesce(true);
         cBuf = new byte[15000];
         cTimer.start(); //// TOREMOVE
+
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                onExit();
+            }
+        });
     }
 
     @Override
@@ -139,6 +146,13 @@ public class Client extends JFrame implements ActionListener {
         } else if (e.getSource() == listStreamButton) {
             listStreamButtonPressed();
         }
+    }
+
+
+    private void onExit(){
+        TCPPacket packet = new TCPPacket(TCPPacket.Type.LEAVE);
+        this.tcpManager.sendPacket(null, packet); // QUE METER EN GATEWAY ????
+        System.exit(0);
     }
 
     private void playButtonPressed() {

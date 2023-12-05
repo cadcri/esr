@@ -83,7 +83,6 @@ public class TCPManager {
                 writer.println(serializedPacket);
                 writer.flush();
                 socket.close();
-
             } finally {
                 gatewaysLock.unlock();
             }
