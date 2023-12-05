@@ -24,12 +24,14 @@ public class UDPTesteServer {
         // loop nos frames do video
         for (int i = 0; i < packetManager.getNumberOfFrames(); i++){
             byte[] frame = packetManager.getFrame(i);
-
+            for (byte a : frame){
+                System.out.println(a);
+            }
             // criacao do packet para enviar a partir dum RTPPacket
-            RTPPacket rtpPacket = new RTPPacket(0, i, 10, frame, frame.length, "teste");
+            RTPPacket rtpPacket = new RTPPacket(0, i, 10*i, frame, frame.length, "teste");
             byte[] packetContent = rtpPacket.getContent();
 
-            // envio do packet
+            // envio do packet ao IP em argumento 1 na porta 4555
             try {
                 DatagramPacket packet =  new DatagramPacket(packetContent, packetContent.length, InetAddress.getByName(args[1]), 4555);
                 socket.send(packet);

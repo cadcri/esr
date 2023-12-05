@@ -9,7 +9,6 @@ import java.net.*;
 public class UDPTesteCliente {
 
     public static void main(String[] args){
-
         // criacao do socket para receber com uma porta de 4555
         DatagramSocket rtpSocket;
         try {
@@ -22,7 +21,6 @@ public class UDPTesteCliente {
         byte[] buff = new byte[150000];
         DatagramPacket rcvdp = new DatagramPacket(buff, buff.length);
 
-
         while (true){
             // rececao do packet e creacao do RTPPacket com os dados recebidos
             try {
@@ -31,8 +29,6 @@ public class UDPTesteCliente {
                 throw new RuntimeException(e);
             }
             RTPPacket packet = new RTPPacket(rcvdp.getData(), rcvdp.getLength());
-
-
             System.out.println("Receved packet nb : " + packet.getsequencenumber());
         }
     }
