@@ -44,10 +44,10 @@ public class UDPManager{
     //This will have the routing info of each node
     private HashMap<String, ArrayList<RouteInfo>> routes = new HashMap<String, ArrayList<RouteInfo>>();
     //Stream id followed by the streamId
-    private ArrayList<Integer> streams = new ArrayList<Integer>();
-    //HashMap with the streamId and an arrayList of udp sockets to redirect the streams
-    private HashMap<Integer, ArrayList<DatagramSocket>> streamSockets = new HashMap<Integer, ArrayList<DatagramSocket>>();
-
+    //private ArrayList<Integer> streams = new ArrayList<Integer>();
+    //HashMap with the streamId and an arrayList of the gateways to redirect the streams
+    public HashMap<Integer, ArrayList<String>> streamSockets = new HashMap<Integer, ArrayList<String>>();
+    public HashMap<Integer, String>  streams = new HashMap<Integer, String>();
 
     public UDPManager(Node node){
         this.node=node;
@@ -75,12 +75,13 @@ public class UDPManager{
         }
     }
 
-    public Integer addStream() {
+    public Integer addStream(String pathToFile) {
         
         try {
             //Lets generate the streamId
-            Integer streamId = this.streams.size()+1;
-            this.streams.add(streamId);
+            Integer streamId = this.streamSockets.size();
+            this.streamSockets.put(streamId, new ArrayList<String>());
+            this.streams.put(streamId, pathToFile);
             return streamId;
         } catch (Exception e) {
             e.printStackTrace();
@@ -138,7 +139,9 @@ public class UDPManager{
                         throw new RuntimeException(e);
                     }
                 }
-                
+                //Rever isto
+                //this.tcpManager.sendPacket(null, new TCPPacket(TCPPacket.Type.END_STREAM));
+                System.out.println("Sending END_STREAM packet to the rp");
             }).start();
         }catch(Exception e){
             e.printStackTrace();
@@ -154,7 +157,7 @@ public class UDPManager{
                     byte[] buffer = new byte[1024];
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     udpSocket.receive(packet);
-                    System.out.println("Received packet from: "+packet.getAddress().toString());
+                    //System.out.println("Received packet from: "+packet.getAddress().toString());
                     new Thread(() -> {
                         handleResponse(packet);
                     }).start();
@@ -171,6 +174,32 @@ public class UDPManager{
         }
     }
 
+    private void rpRedirect(DatagramPacket pac){
+        //The rp redirects the stream to all the nodes that want to consume the stream
+        RTPPacket packet = new RTPPacket(pac.getData(), pac.getLength());
+        int streamId = packet.getStreamID();
+        for(String node: this.streamSockets.get(streamId)){
+            System.out.println("Redirecting the stream to:"+ node);
+            ArrayList<String> path = this.getBestPath(node);
+            String gt = path.get(0);
+            //Send the packet to the gt
+            byte[] payload = packet.payload;
+            RTPPacket clone = new RTPPacket(packet.getStreamID(), packet.sequenceNr, packet.timestamp, payload, packet.payload_size, node);
+            System.out.println(clone.getDestIp());
+            byte[] packetContent = clone.getContent();
+            try{
+                InetAddress nodeAdd = InetAddress.getByName(gt);  
+                DatagramPacket newPacket =  new DatagramPacket(packetContent, packetContent.length,nodeAdd , UDPPORT);
+                udpSocket.send(newPacket);
+                System.out.println("Sent packet to: "+ gt);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+
+        }
+
+    }
+
     public void handleResponse(DatagramPacket packet){
         try{
             if(this.node.getNodeType()==Node.type.node){
@@ -183,8 +212,13 @@ public class UDPManager{
                 udpSocket.send(newPacket);
             }
             if(this.node.getNodeType()==Node.type.rp){
-                //the rp will receive the packets and redirect them 
-                
+                //the rp will receive the packets and redirect them
+                new Thread(() -> {
+                    this.rpRedirect(packet);
+                }).start();
+            }
+            if(this.node.getNodeType()==Node.type.client){
+                System.out.println("Received packet from: "+packet.getAddress().toString());
             }
 
         }

@@ -30,11 +30,14 @@ public class TCPManager {
     private Node node;
     private int tcpDftPort = 44000;
     private UDPManager udpManager;
+    public Boolean streamsUpdated = false;
 
 
     // Dest node and the latencies to it with the path it follows
     private HashMap<String, ArrayList<RouteInfo>> routes = new HashMap<>();
     private ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+    public HashMap<Integer, String>  streams = new HashMap<Integer, String>();
+
 
     private Lock gatewaysLock = new ReentrantLock();
 
@@ -156,12 +159,23 @@ public class TCPManager {
                 break;
 
             case REQUEST_STREAM_ACK:
+                //Handle this
                 break;
 
             case STREAM_END:
+                //Set this up
                 break;
 
             case STREAM_END_ACK:
+                //Set this up
+                break;
+            
+            case LIST_STREAMS:
+                handleListStreams(packet, clientIP);
+                break;
+            
+            case LIST_STREAMS_ACK:
+                handleListStreamsAck(packet, clientIP);
                 break;
 
 
@@ -173,10 +187,109 @@ public class TCPManager {
         }
     }
 
+    private void handleListStreamsAck(TCPPacket packet, String clientIp){
+        if(this.node.getNodeType()==Node.type.client){
+            ArrayList<String> streams = packet.getStreams();
+            this.streams=new HashMap<Integer, String>();
+            for(int i=0; i<streams.size(); i++){
+                this.streams.put(i, streams.get(i));
+            }
+            this.streamsUpdated=true;
+        }
+        else{
+            //Forward the packet
+            if (packet.getSrc() == null || packet.getSrc().equals("") || packet.getSrc().equals("null")) {
+                packet.setSrc(clientIp);
+            }
+            String dest = packet.getDest();
+            ArrayList<String> bestPath = this.getBestPath(dest);
+            this.sendPacket(bestPath.get(bestPath.size()-1), packet);
+            System.out.println("Packet sent to "+ bestPath.get(bestPath.size()-1));
+        }
+    }
+
+
+    private void handleListStreams(TCPPacket packet, String clientIP){
+        //Forward the packet
+        if (packet.getSrc() == null || packet.getSrc().equals("") || packet.getSrc().equals("null")) {
+            packet.setSrc(clientIP);
+        }
+        //This is only executed by the rp
+        //Send the list of streams to the client
+        if(this.node.getNodeType()==Node.type.rp){
+            System.out.println("Got request for the list of streams");
+            TCPPacket ack = new TCPPacket(TCPPacket.Type.LIST_STREAMS_ACK);
+            ack.setDest(packet.getSrc());
+            System.out.println("Streams: "+ this.udpManager.streams.values());
+            ack.setStreams(new ArrayList<String>(this.udpManager.streams.values()));
+            ArrayList<String> path = this.getBestPath(packet.getSrc());
+            System.out.println("Sending to "+ path.get(path.size()-1));
+            this.sendPacket(path.get(path.size()-1), ack);
+        }
+        else{
+            System.out.println("Rello");
+            String dest = packet.getDest();
+            ArrayList<String> bestPath = this.getBestPath(dest);
+            this.sendPacket(bestPath.get(0), packet);
+        }
+    }
+
     private void handleRequestStream(TCPPacket packet, String clientIP){
         //First we have to verify if our node is already redirecting the packages
         //If so we just create a new thread and start redirecting  UDP packets to it
         //If not we have to forward this packet until it reaches the rp
+
+        if (packet.getSrc() == null || packet.getSrc().equals("") || packet.getSrc().equals("null")) {
+            packet.setSrc(clientIP);
+        }
+        if(this.node.getNodeType()==Node.type.node){
+            System.out.println("Got request for a stream: "+packet.getStreamId());
+            if(this.udpManager.streamSockets.containsKey(packet.getStreamId())){
+                System.out.println("Stream already running");
+                //We are already redirecting the packets
+                //We just have to send the ack
+                TCPPacket ack = new TCPPacket(TCPPacket.Type.REQUEST_STREAM_ACK);
+                ack.setStreamId(packet.getStreamId());
+                ack.setDest(packet.getSrc());
+
+                ArrayList<String> path = this.getBestPath(packet.getSrc());
+                ack.setOutgoingPath(path);
+                this.sendPacket(path.get(0), ack);
+
+                //add this "pipeline" to the stream
+                //*TODO* Verify this
+                this.udpManager.streamSockets.get(packet.getStreamId()).add(clientIP);
+            }
+            else{
+                String dest = packet.getDest();
+                ArrayList<String> bestPath = this.getBestPath(dest);
+                this.sendPacket(bestPath.get(0), packet);
+                System.out.println("Packet sent to "+ bestPath.get(0));
+            }
+        }
+        if(this.node.getNodeType()==Node.type.rp){
+            if(this.udpManager.streamSockets.containsKey(packet.getStreamId())){
+                System.out.println("Stream already running");
+                //We are already redirecting the packets
+                //We just have to send the ack
+                TCPPacket ack = new TCPPacket(TCPPacket.Type.REQUEST_STREAM_ACK);
+                ack.setStreamId(packet.getStreamId());
+                ack.setDest(packet.getSrc());
+
+                ArrayList<String> path = this.getBestPath(packet.getSrc());
+                ack.setOutgoingPath(path);
+                this.sendPacket(path.get(0), ack);
+
+                //add this "pipeline" to the stream
+                this.udpManager.streamSockets.get(packet.getStreamId()).add(clientIP);
+            }
+            else{
+                //Start the streaming process
+                System.out.println("Starting the stream to the node that requested it: "+ packet.getSrc());
+                //this.udpManager.streamSockets.put(packet.getStreamId(), new ArrayList<>());
+                this.udpManager.streamSockets.get(packet.getStreamId()).add(packet.getSrc());
+            }
+        }
     }
 
     private void vascoDaGama(TCPPacket packet, String clientIP) {
@@ -267,6 +380,7 @@ public class TCPManager {
             RouteInfo routeInfo = new RouteInfo(packet.getSrc(), Math.abs(latency), temp);
             // add this path
             addRoute(routeInfo, packet.getSrc());
+            this.node.estado = Node.state.on;
         } else {
 
             for (String neighbourGateway : this.node.getGateways()) {
@@ -303,13 +417,18 @@ public class TCPManager {
     }
 
     private void handleStream(TCPPacket packet, String clientIP) {
+        if (packet.getSrc() == null || packet.getSrc().equals("") || packet.getSrc().equals("null")) {
+            packet.setSrc(clientIP);
+            ArrayList<String> bestPath = this.getBestPath();
+            packet.setDest(bestPath.get(bestPath.size()-1));
+        }
         // Handle the stream packet
         if(this.node.getNodeType()==Node.type.rp){
             //send the stream ack
             System.out.println("Got stream request from "+packet.getSrc());
             String requestFrom = packet.getSrc();
             //In the first place we have to generate the StreamId and then we send the ack
-            int id = this.udpManager.addStream();
+            int id = this.udpManager.addStream(packet.getPathToFile());
             //Lets send the ack
             TCPPacket ack = new TCPPacket(TCPPacket.Type.STREAM_ACK);
             ack.setStreamId(id);
@@ -321,11 +440,6 @@ public class TCPManager {
             this.sendPacket(path.get(path.size()-1), ack);
         }
         else{
-            if (packet.getSrc() == null || packet.getSrc().equals("") || packet.getSrc().equals("null")) {
-                packet.setSrc(clientIP);
-                ArrayList<String> bestPath = this.getBestPath();
-                packet.setDest(bestPath.get(bestPath.size()-1));
-            }
             String dest = packet.getDest();
             ArrayList<String> bestPath = this.getBestPath(dest);
             this.sendPacket(bestPath.get(0), packet);
@@ -336,6 +450,9 @@ public class TCPManager {
 
     private void handleStreamAck(TCPPacket packet, String clientIP) {
         // Handle the stream acknowledgment packet
+        if (packet.getSrc() == null || packet.getSrc().equals("") || packet.getSrc().equals("null")) {
+            packet.setSrc(clientIP);
+        }
         if (this.node.getNodeType() == Node.type.client) {
             System.out.println("I was the node that sent the stream");
             //Start the unicast streaming of the stream packets to the rp
@@ -344,9 +461,6 @@ public class TCPManager {
 
         }
         else{
-            if (packet.getSrc() == null || packet.getSrc().equals("") || packet.getSrc().equals("null")) {
-                packet.setSrc(clientIP);
-            }
             String dest = packet.getDest();
             ArrayList<String> bestPath = this.getBestPath(dest);
             System.out.println("Sending stream ack to "+ dest + "via "+ bestPath.get(bestPath.size()-1));
@@ -383,6 +497,9 @@ public class TCPManager {
         //The other nodes just forward the packet
         //when the packet reaches the destination node he should update the latency and send it back
         //the rp should update the latency of the route
+        if(packet.getSrc() == null || packet.getSrc().equals("") || packet.getSrc().equals("null")){
+            packet.setSrc(clientIP);
+        }
         if(packet.getOutgoingPath().size()==packet.getIncomingPath().size()){
             //This is the destination node of the probe
             //Send the probe ack
@@ -404,9 +521,6 @@ public class TCPManager {
             }
         }
         else{
-            if(packet.getSrc() == null || packet.getSrc().equals("") || packet.getSrc().equals("null")){
-                packet.setSrc(clientIP);
-            }
             //Forward the packet
             for (String neighbourGateway : this.node.getGateways()) {
                 if (packet.getOutgoingPath().contains(neighbourGateway)) {

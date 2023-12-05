@@ -19,7 +19,9 @@ public class TCPPacket implements Serializable {
         REQUEST_STREAM,
         REQUEST_STREAM_ACK,
         STREAM_END,
-        STREAM_END_ACK
+        STREAM_END_ACK,
+        LIST_STREAMS, 
+        LIST_STREAMS_ACK
     }
 
     private String src = null;
@@ -29,6 +31,7 @@ public class TCPPacket implements Serializable {
     private Type tipo;
     private ArrayList<String> outgoingPath = new ArrayList<String>();
     private ArrayList<String> incomingPath = new ArrayList<String>();
+    private ArrayList<String> streams = new ArrayList<String>();
     private int streamId=-1;
     private int streamPort;
     private String streamInteface;
@@ -53,6 +56,18 @@ public class TCPPacket implements Serializable {
 
     public String getDest(){
         return this.dest;
+    }
+
+    public ArrayList<String> getStreams(){
+        return this.streams;
+    }
+
+    public void addStream(String stream){
+        this.streams.add(stream);
+    }
+
+    public void setStreams(ArrayList<String> streams){
+        this.streams = streams;
     }
 
     public void setDest(String dest){
@@ -169,6 +184,7 @@ public class TCPPacket implements Serializable {
         clone.setStreamInterface(this.streamInteface);
         clone.setPathToFile(this.pathToFile);
         clone.setDest(this.dest);
+        clone.setStreams(new ArrayList<String>(this.streams));
         return clone;
     }
 
@@ -201,6 +217,10 @@ public class TCPPacket implements Serializable {
         serialized.append(this.streamInteface).append("$$");
         serialized.append(this.pathToFile).append("$$");
         serialized.append(this.dest).append("$$");
+        serialized.append(this.streams.size()).append("$$");
+        for (String stream : this.streams) {
+            serialized.append(stream).append(";;");
+        }
         serialized.append("$$");
         return serialized.toString();
     }
@@ -232,6 +252,10 @@ public class TCPPacket implements Serializable {
         packet.setStreamInterface(fields[10]);
         packet.setPathToFile(fields[11]);
         packet.setDest(fields[12]);
+        int streamsSize = Integer.parseInt(fields[13]);
+        for (int i = 0; i < streamsSize; i++) {
+            packet.addStream(fields[14].split(";;")[i]);
+        }
         return packet;
     }
 

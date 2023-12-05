@@ -7,13 +7,13 @@ public class RTPPacket {
     private int HEADER_SIZE = 21;
 
     private int streamID;
-    private int sequenceNr;
-    private int timestamp;
+    public int sequenceNr;
+    public int timestamp;
     private int ssrc;
 
     private byte[] header;
-    private int payload_size;
-    private byte[] payload;
+    public int payload_size;
+    public byte[] payload;
     private byte[] destIp;
 
 
@@ -23,7 +23,6 @@ public class RTPPacket {
         byte[] result = b.array();
 
         this.destIp = destIp.getBytes();
-        System.out.println("DestIp:"+ new String(this.destIp));
 
         // fill by default header fields
         ssrc = 0;
@@ -163,11 +162,37 @@ public class RTPPacket {
     }
 
     public void printheader(){
+        System.out.println("DestIP:" + destIp);
         System.out.print("[RTP-Header] ");
         System.out.println("Stream ID: " + this.streamID
                            + ", SequenceNumber: " + sequenceNr
                            + ", TimeStamp: " + timestamp
-                           + ", DestIp: " + new String(destIp));
+                          + ", Dest: " + new String(destIp));
+    }
+
+    public void setDest(String newDest){
+        this.destIp = newDest.getBytes();
+        byte[] destIpBytes = newDest.getBytes();
+        if (destIpBytes.length <= HEADER_SIZE - 12) {
+            System.arraycopy(destIpBytes, 0, header, 12, destIpBytes.length);
+        } else {
+            throw new IllegalArgumentException("Destination IP exceeds header size");
+        }
+    }
+
+    public RTPPacket clone() {
+        try{
+            System.out.println("Debug: "+ streamID + " " + sequenceNr + " " + timestamp + " ");
+            RTPPacket clonedPacket = new RTPPacket(streamID, sequenceNr, timestamp, payload.clone(), payload_size, new String(destIp));
+            System.out.println("Cloned packet:");
+            clonedPacket.printheader();
+            clonedPacket.header = header.clone();
+            return clonedPacket;
+        }catch(Exception e){
+            e.printStackTrace();
+            return null;
+        }
+
     }
 
     public int unsigned_int(int nb) {

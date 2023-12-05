@@ -1,19 +1,28 @@
 package Nodes;
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import TCP.*;
 import UDP.*;
 import Structs.*;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.util.Map;
+import javax.swing.JOptionPane;
 
-import java.net.*;
-import java.util.Scanner;
-import java.io.*;
-import java.lang.Thread;
-import java.lang.System;
-import java.util.Base64;
-import java.util.HashMap;
+public class Client extends JFrame implements ActionListener {
 
-
-public class Client {
+    private JLabel iconLabel;
+    private Timer cTimer;
+    private byte[] cBuf;
     private OutputStream os;
     private PrintWriter pw;
     private BufferedReader in;
@@ -23,9 +32,16 @@ public class Client {
     private TCPManager tcpManager;
 
     private Boolean connected = false;
+    JButton playButton;
+    JButton pauseButton;
+    JButton juntarButton;
+    JButton initButton;
+    JPanel mainPanel;
+    JPanel buttonPanel;
+    JButton listStreamButton;
 
+    public Client(Node node){
 
-    public Client(Node node) {
         this.node = node;
 
         //this.tcpHandler = new Manager(this.node);
@@ -42,62 +58,186 @@ public class Client {
         } catch (Exception e) {
             System.out.println("Error creating TCPManager");
         }
-    
 
-        try {
-            Scanner sc = new Scanner(System.in);
-            String option = "";
-            while (!option.equals("4")) {
-                System.out.println("What do you want to do?");
-                System.out.println("1. Join network with default gateway(s): " + this.node.getGateways().toString());
-                System.out.println("2. Start Streaming");
-                System.out.println("3. List routes");
-                System.out.println("4. Exit");
-
-                option = sc.nextLine();
-
-                switch (option) {
-                    case "1":
-                        System.out.println("Joining network");
-                        for (String gateway : this.node.getGateways()) {
-                            System.out.println("Sending join message to: " + gateway);
-                            //this.tcpManager.createWriting(gateway);
-                            TCPPacket packet = new TCPPacket(TCPPacket.Type.JOIN);
-                            packet.addToOutgoingPath(gateway);
-                            //packet.addToIncomingPath(gateway);
-                            this.tcpManager.sendPacket(gateway, packet);
-                        }
-                        break;
-                    
-                    case "2":
-                        System.out.println("Starting streaming");
-                        System.out.println("Enter the full path of the file you want to stream: ");
-                        String path = sc.nextLine();
-                        TCPPacket packet = new TCPPacket(TCPPacket.Type.STREAM);
-                        packet.setPathToFile(path);
-                        packet.setSrc(null);
-                        packet.setDest(null);
-                        this.tcpManager.sendPacket(null,packet);
-                        break;
-
-                    case "3":
-                        this.tcpManager.listRoutes();
-                        break;
-                }
-            }
-        } finally {
+        //Try to join the network, while it cant join, it will keep trying
+        while(this.node.estado!=Node.state.on){
             try {
-                //udpManager.leave();
-                //tcpManager.leave();
-                return;
+                for (String gateway : this.node.getGateways()) {
+                    System.out.println("Sending join message to: " + gateway);
+                    //this.tcpManager.createWriting(gateway);
+                    TCPPacket packet = new TCPPacket(TCPPacket.Type.JOIN);
+                    packet.addToOutgoingPath(gateway);
+                    //packet.addToIncomingPath(gateway);
+                    this.tcpManager.sendPacket(gateway, packet);
+                    try{
+                        Thread.sleep(1000);
+                    }catch(Exception e){
+                        System.out.println("Error sleeping");
+                    }
+
+                }
             } catch (Exception e) {
-                System.out.println("Error closing sockets");
+                System.out.println("Error joining network");
             }
+        }
+    
+        playButton = new JButton("Play");
+        pauseButton = new JButton("Pause");
+        juntarButton = new JButton("Juntar Stream");
+        initButton = new JButton("Iniciar Stream");
+        listStreamButton = new JButton("Listar Streams");
+        mainPanel = new JPanel();
+        buttonPanel = new JPanel();
+        iconLabel = new JLabel();
+        buttonPanel.setLayout(new GridLayout(1, 0));
+        buttonPanel.add(playButton);
+        buttonPanel.add(pauseButton);
+        buttonPanel.add(listStreamButton);
+        buttonPanel.add(juntarButton);
+        buttonPanel.add(initButton);
+        iconLabel.setIcon(null);
+        mainPanel.setLayout(null);
+        mainPanel.add(iconLabel);
+        mainPanel.add(buttonPanel);
+        iconLabel.setBounds(0, 0, 380, 280);
+        buttonPanel.setBounds(0, 280, 380, 50);
+        getContentPane().add(mainPanel, BorderLayout.CENTER);
+
+        setSize(new Dimension(390, 370));
+        setVisible(true);
+
+
+        playButton.addActionListener(e -> {
+            cTimer.start();
+        });
+        pauseButton.addActionListener(e -> {
+            cTimer.stop();
+            System.exit(0);
+        });
+        juntarButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                juntarButtonPressed();
+                }
+            });
+        cTimer = new Timer(20, this);
+        cTimer.setInitialDelay(0);
+        cTimer.setCoalesce(true);
+        cBuf = new byte[15000];
+        cTimer.start(); //// TOREMOVE
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == playButton) {
+            playButtonPressed();
+        } else if (e.getSource() == pauseButton) {
+            pauseButtonPressed();
+        } else if (e.getSource() == juntarButton) {
+            juntarButtonPressed();
+        } else if (e.getSource() == initButton) {
+            initButtonPressed();
+        } else if (e.getSource() == listStreamButton) {
+            listStreamButtonPressed();
         }
     }
 
-    public String encode(String path){
-        byte[] bytes = Base64.getEncoder().encode(path.getBytes());
-        return new String(bytes);
+    private void playButtonPressed() {
+        // Add your code here for when the Play button is pressed
+        cTimer.start();
     }
+
+    private void pauseButtonPressed() {
+        // Add your code here for when the Pause button is pressed
+        cTimer.stop();
+    }
+
+    private void juntarButtonPressed() {
+        // Get the available streams and then show a window for the user to choose the stream
+        this.tcpManager.streamsUpdated = false;
+        System.out.println("Sent packet");
+        TCPPacket packet = new TCPPacket(TCPPacket.Type.LIST_STREAMS);
+        System.out.println("Teste");
+        this.tcpManager.sendPacket(null, packet);
+        System.out.println("Teste2");
+        while (!this.tcpManager.streamsUpdated) {
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) {
+                System.out.println("Error sleeping");
+            }
+        }
+        Map<Integer, String> streams = new HashMap<>(this.tcpManager.streams);
+
+        // Show a window with the available streams
+        String[] streamOptions = streams.values().toArray(new String[0]);
+        String selectedStream = (String) JOptionPane.showInputDialog(
+                this,
+                "Select a stream:",
+                "Available Streams",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                streamOptions,
+                null
+        );
+
+        if (selectedStream != null) {
+            System.out.println("Stream escolhido: " + selectedStream);
+            TCPPacket packet2 = new TCPPacket(TCPPacket.Type.REQUEST_STREAM);
+            // Add your code here to handle the selected stream
+        }
+    }
+
+    private void initButtonPressed() {
+        // Add your code here for when the Iniciar Stream button is pressed
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Select a file");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Files", "mp4", "mp3", "txt")); // Add the file extensions you want to allow
+
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+            TCPPacket packet = new TCPPacket(TCPPacket.Type.STREAM);
+            packet.setPathToFile(filePath);
+            packet.setSrc(null);
+            packet.setDest(null);
+            this.tcpManager.sendPacket(null,packet);
+        }
+    }
+
+    private void listStreamButtonPressed() {
+        // Add your code here for when the Listar Streams button is pressed
+        this.tcpManager.streamsUpdated = false;
+        System.out.println("Sent packet");
+        TCPPacket packet = new TCPPacket(TCPPacket.Type.LIST_STREAMS);
+        System.out.println("Teste");
+        this.tcpManager.sendPacket(null, packet);
+        System.out.println("Teste2");
+        while (!this.tcpManager.streamsUpdated) {
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) {
+                System.out.println("Error sleeping");
+            }
+        }
+        Map<Integer, String> streams = new HashMap<>(this.tcpManager.streams);
+
+        // Show a window with the available streams
+        String[] streamOptions = streams.values().toArray(new String[0]);
+        String selectedStream = (String) JOptionPane.showInputDialog(
+                this,
+                "Select a stream:",
+                "Available Streams",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                streamOptions,
+                null
+        );
+
+        if (selectedStream != null) {
+            System.out.println("Stream escolhido: " + selectedStream);
+            TCPPacket packet2 = new TCPPacket(TCPPacket.Type.REQUEST_STREAM);
+            // Add your code here to handle the selected stream
+        }
+    }
+
 }
