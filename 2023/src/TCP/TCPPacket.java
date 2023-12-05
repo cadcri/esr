@@ -20,8 +20,8 @@ public class TCPPacket implements Serializable {
         REQUEST_STREAM_ACK,
         STREAM_END,
         STREAM_END_ACK,
-        LIST_STREAMS, 
-        LIST_STREAMS_ACK
+        LIST_STREAMS,
+        END_STREAM, LIST_STREAMS_ACK
     }
 
     private String src = null;

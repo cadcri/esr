@@ -4,16 +4,7 @@ import Structs.*;
 import UDP.*;
 import TCP.*;
 
-import java.util.HashMap;
-import java.util.ArrayList;
 import java.util.Scanner;
-import java.net.Socket;
-import java.io.PrintWriter;
-import java.net.ServerSocket;
-import java.util.concurrent.*;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.io.IOException;
 
 
@@ -36,7 +27,7 @@ public class RP{
         System.out.println("Dft gateways: " + this.node.getGateways().toString());
 
         // Initialize the tcpManager HashMap
-        this.udpManager = new UDPManager(node);
+        this.udpManager = new UDPManager(node, this.tcpManager);
         tcpManager=new TCPManager(this.node, this.udpManager);
 
         String option = "";

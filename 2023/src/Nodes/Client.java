@@ -53,7 +53,7 @@ public class Client extends JFrame implements ActionListener {
 
         // udpManager = new UDPManager(this.node);
         try {
-            this.udpManager = new UDPManager(this.node);
+            this.udpManager = new UDPManager(this.node, this.tcpManager);
             this.tcpManager = new TCPManager(this.node, this.udpManager);
         } catch (Exception e) {
             System.out.println("Error creating TCPManager");

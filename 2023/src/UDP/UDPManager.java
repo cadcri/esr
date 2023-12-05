@@ -2,20 +2,14 @@ package UDP;
 import TCP.RouteInfo;
 
 import Structs.*;
+import TCP.TCPManager;
+import TCP.TCPPacket;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.MulticastSocket;
 import java.util.HashMap;
 import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Random;
-import java.net.DatagramPacket;
 
 /*
  * UDPManager
@@ -49,8 +43,11 @@ public class UDPManager{
     public HashMap<Integer, ArrayList<String>> streamSockets = new HashMap<Integer, ArrayList<String>>();
     public HashMap<Integer, String>  streams = new HashMap<Integer, String>();
 
-    public UDPManager(Node node){
+    private TCPManager tcpManager;
+
+    public UDPManager(Node node, TCPManager tcpManager){
         this.node=node;
+        this.tcpManager = tcpManager;
         try{
             this.initUnicast();
         }
@@ -139,8 +136,8 @@ public class UDPManager{
                         throw new RuntimeException(e);
                     }
                 }
-                //Rever isto
-                //this.tcpManager.sendPacket(null, new TCPPacket(TCPPacket.Type.END_STREAM));
+
+                this.tcpManager.sendPacket(null, new TCPPacket(TCPPacket.Type.END_STREAM)); // PARA QUE GATEWAY ENVIAR ? QUAL O IP DO RP ?
                 System.out.println("Sending END_STREAM packet to the rp");
             }).start();
         }catch(Exception e){

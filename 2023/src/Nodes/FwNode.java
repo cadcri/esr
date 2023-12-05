@@ -4,13 +4,10 @@ import TCP.*;
 import UDP.*;
 import Structs.*;
 
-import java.net.*;
 import java.util.Scanner;
 import java.io.*;
-import java.lang.Thread;
 import java.lang.System;
 import java.util.Base64;
-import java.util.HashMap;
 
 
 public class FwNode {
@@ -35,7 +32,7 @@ public class FwNode {
 
         // udpManager = new UDPManager(this.node);
         try {
-            this.udpManager = new UDPManager(this.node);
+            this.udpManager = new UDPManager(this.node, this.tcpManager);
             this.tcpManager = new TCPManager(this.node, this.udpManager);
         } catch (Exception e) {
             System.out.println("Error creating TCPManager");
