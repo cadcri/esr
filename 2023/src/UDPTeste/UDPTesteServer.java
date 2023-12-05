@@ -26,7 +26,7 @@ public class UDPTesteServer {
             byte[] frame = packetManager.getFrame(i);
 
             // criacao do packet para enviar a partir dum RTPPacket
-            RTPPacket rtpPacket = new RTPPacket(0, i, 10*i, frame, frame.length, "teste");
+            RTPPacket rtpPacket = new RTPPacket(0, i, 10*i, frame, frame.length, "");
             byte[] packetContent = rtpPacket.getContent();
 
             // envio do packet ao IP em argumento 1 na porta 4555
