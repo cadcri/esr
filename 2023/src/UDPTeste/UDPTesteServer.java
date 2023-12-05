@@ -13,14 +13,11 @@ public class UDPTesteServer {
         // packet manager criado a partir do nome do ficheiro em input em primeiro argumento
         PacketManager packetManager = new PacketManager(args[0]);
 
-        // criacao do socket com um port de 455 e em destino o IP adress em segundo argumento
+        // criacao do socket
         DatagramSocket socket;
         try {
-            System.out.println("10.0.2.20");
-            byte[] ipAddr = new byte[]{10, 0, 2, 20};
-            InetAddress addr = InetAddress.getByAddress(ipAddr);
-            socket = new DatagramSocket(4555, addr);
-        } catch (SocketException | UnknownHostException e) {
+            socket = new DatagramSocket();
+        } catch (SocketException e) {
             throw new RuntimeException(e);
         }
 
@@ -34,7 +31,7 @@ public class UDPTesteServer {
 
             // envio do packet
             try {
-                DatagramPacket packet =  new DatagramPacket(packetContent, packetContent.length);
+                DatagramPacket packet =  new DatagramPacket(packetContent, packetContent.length, InetAddress.getByName(args[1]), 4555);
                 socket.send(packet);
             } catch (IOException e) {
                 throw new RuntimeException(e);
