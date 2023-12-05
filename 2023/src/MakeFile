@@ -15,7 +15,7 @@ clean:
 # Compiling the code
 compile:
 	mkdir -p output
-	$(JC) $(JFLAGS) *.java Nodes/*.java Structs/*.java TCP/*.java UDP/*.java
+	$(JC) $(JFLAGS) *.java Nodes/*.java Structs/*.java TCP/*.java UDP/*.java GUI/*.java
 
 # Running the program
 run:
