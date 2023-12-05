@@ -16,6 +16,7 @@ public class UDPTesteServer {
         // criacao do socket com um port de 455 e em destino o IP adress em segundo argumento
         DatagramSocket socket;
         try {
+            System.out.println(args[1]);
             socket = new DatagramSocket(4555, InetAddress.getByName(args[1]));
         } catch (SocketException | UnknownHostException e) {
             throw new RuntimeException(e);

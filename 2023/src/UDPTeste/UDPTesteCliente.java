@@ -31,6 +31,8 @@ public class UDPTesteCliente {
                 throw new RuntimeException(e);
             }
             RTPPacket packet = new RTPPacket(rcvdp.getData(), rcvdp.getLength());
+
+
             System.out.println("Receved packet nb : " + packet.getsequencenumber());
         }
     }
