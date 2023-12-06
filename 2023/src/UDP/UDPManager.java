@@ -111,7 +111,7 @@ public class UDPManager{
                 try {
                     socket = new DatagramSocket();
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    throw new RunException(e);
                 }
 
                 ArrayList<String> bestPath = getBestPath();
@@ -140,7 +140,7 @@ public class UDPManager{
 
                     // esperamos algums milli segundos ate enviar de novo
                     try {
-                        final int TIME_BETWEEN_FRAMES = 100; // in ms
+                        final int TIME_BETWEEN_FRAMES = 40; // in ms
                         Thread.sleep(TIME_BETWEEN_FRAMES);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
