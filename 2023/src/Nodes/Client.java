@@ -35,6 +35,7 @@ public class Client extends JFrame implements ActionListener {
     private int lastDisplayedPacket=-1;
     private int streamId = -1;
 
+    private boolean play;
 
     private Boolean connected = false;
     JButton playButton;
@@ -175,8 +176,10 @@ public class Client extends JFrame implements ActionListener {
                     Image image = toolkit.createImage(payload, 0, payload_length);
 
                     ImageIcon icon = new ImageIcon(image);
-                    iconLabel.setIcon(icon);
 
+                    if (play) {
+                         iconLabel.setIcon(icon);
+                    }
                 }
             }
         }
@@ -186,11 +189,14 @@ public class Client extends JFrame implements ActionListener {
     private void playButtonPressed() {
         // Add your code here for when the Play button is pressed
         cTimer.start();
+
+        play = true;
     }
 
     private void pauseButtonPressed() {
         // Add your code here for when the Pause button is pressed
         //cTimer.stop();
+        play = false;
     }
 
     private void juntarButtonPressed() {
