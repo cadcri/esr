@@ -1,11 +1,11 @@
 <nodes>
     <node name="client1">
-        <gateway>10.0.3.21</gateway>
+        <gateway>10.0.3.20</gateway>
         <type>client</type>
     </node>
 
     <node name="client2">
-        <gateway>10.0.0.21</gateway>
+        <gateway>10.0.4.20</gateway>
         <type>client</type>
     </node>
 
@@ -15,24 +15,25 @@
     </node>
 
 
-    <node name="client5">
-        <!-- <gateway>10.0.4.21</gateway>  -->
-        <gateway>10.0.3.20</gateway>
+    <node name="node1">
+        <gateway>10.0.0.21</gateway> 
+        <gateway>10.0.3.21</gateway>
         <gateway>10.0.5.21</gateway>
-        <type>client</type>
+        <type>node</type>
     </node>
 
 
-    <node name="client6">
+    <node name="node2">
         <gateway>10.0.5.20</gateway>
-        <!-- <gateway>10.0.0.20</gateway>  <gateway>10.0.1.21</gateway> -->
+        <gateway>10.0.4.21</gateway>  
+        <gateway>10.0.1.21</gateway>
         
-        <type>client</type>
+        <type>node</type>
     </node>
 
 
     <node name="rp">
-        <gateway>10.0.4.20</gateway>
+        <gateway>10.0.0.20</gateway>
         <gateway>10.0.1.20</gateway>
         <gateway>10.0.2.21</gateway>
         <type>rp</type>

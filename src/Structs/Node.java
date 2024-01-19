@@ -19,6 +19,7 @@ public class Node {
     private type nodeType;
     private state nodeState;
     private ArrayList<String> gateways;
+    public state estado = state.off;
 
     public Node(){
         this.nodeType=null;
